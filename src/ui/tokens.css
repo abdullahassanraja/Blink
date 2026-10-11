@@ -1,0 +1,43 @@
+/* ============================================================
+   Blink Design Tokens
+   Ref: GEMINI_BUILD_GUIDE.md § 3. Design system
+   ============================================================ */
+
+:root {
+  /* Palette */
+  --yellow:      #EDF17B; /* page background, accents */
+  --yellow-soft: #F6F8B8; /* pressed states, highlights */
+  --ink:         #14231E; /* text, primary buttons */
+  --white:       #FFFFFF; /* sheets, cards */
+  --mist:        #F5F6EE; /* subtle surfaces */
+  --line:        #E3E5DA; /* borders */
+  --ok:          #1E7A4C;
+  --warn:        #B3261E;
+
+  /* Radii */
+  --radius-sheet: 32px;
+  --radius-card:  24px;
+  --radius-pill:  999px;
+
+  /* Touch target */
+  --tap-min: 64px;
+
+  /* Typography */
+  --font: "DM Sans", system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-sheet: 0 -4px 32px rgba(20, 35, 30, 0.10);
+  --shadow-card:  0  4px 16px rgba(20, 35, 30, 0.08);
+
+  /* Glassmorphism & Translucent Accents */
+  --glass-bg-sheet: rgba(255, 255, 255, 0.86);
+  --glass-bg-card:  rgba(255, 255, 255, 0.82);
+  --glass-bg-dark:  rgba(20, 35, 30, 0.75);
+  --glass-bg-pill:  rgba(255, 255, 255, 0.65);
+  --glass-border:   rgba(255, 255, 255, 0.55);
+  --glass-border-dark: rgba(20, 35, 30, 0.12);
+  --glass-blur:     blur(20px);
+  --glass-blur-sm:  blur(12px);
+  --glass-shadow:   0 16px 40px -8px rgba(20, 35, 30, 0.12), inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
+  --glass-shadow-dark: 0 16px 36px -8px rgba(0, 0, 0, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}

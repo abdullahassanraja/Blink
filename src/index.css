@@ -1,0 +1,133 @@
+/* ============================================================
+   Blink Global Reset & Base Styles
+   ============================================================ */
+
+/* DM Sans — bundled, works offline */
+@import '@fontsource/dm-sans/400.css';
+@import '@fontsource/dm-sans/500.css';
+@import '@fontsource/dm-sans/600.css';
+
+/* Design tokens */
+@import './ui/tokens.css';
+
+/* ----- Reset ------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  /* Prevent pull-to-refresh hijacking the UI on mobile */
+  overscroll-behavior: none;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font);
+  font-size: 18px;             /* never below 16px per spec */
+  line-height: 1.4;
+  color: var(--ink);
+  background: var(--yellow);
+
+  /* Remove mobile tap highlight flash */
+  -webkit-tap-highlight-color: transparent;
+
+  /* Prevent text resize on orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ----- Accessibility ---------------------------------------- */
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible outline */
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ----- Typography scale ------------------------------------- */
+.text-tagline {
+  font-size: 28px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink);
+}
+
+.text-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.text-big-word {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.text-body {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.text-small {
+  font-size: 14px;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+/* ----- Sheet Scroll & 3D Tilt Utilities --------------------- */
+.sheet-scroll-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 35, 30, 0.18) transparent;
+}
+
+.sheet-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sheet-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sheet-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(20, 35, 30, 0.2);
+  border-radius: 999px;
+}
+
+.sheet-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 35, 30, 0.35);
+}
+
+.tilt-perspective-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
