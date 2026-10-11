@@ -833,7 +833,8 @@ export const Main: React.FC<MainProps> = ({
         <Sheet style={{ zIndex: 10, paddingBottom: '16px' }}>
           {/* Live spoken caption card */}
           <Caption />
-          /* 2-Column Responsive Grid of Aesthetic Minimal Mode Cards */
+
+          {/* 2-Column Responsive Grid of Mode Cards */}
           <div
             style={{
               display: 'grid',
