@@ -343,41 +343,18 @@ export const Main: React.FC<MainProps> = ({
         justifyContent: 'space-between',
       }}
     >
-      {/* Camera Video Viewport (Fullscreen ambient when idle, framed window on top when active) */}
+      {/* Full-bleed Camera Video Viewport (Rest of the screen is camera) */}
       <div
-        style={
-          activeMode
-            ? {
-                position: 'absolute',
-                top: '76px',
-                left: '16px',
-                right: '16px',
-                maxWidth: '540px',
-                margin: '0 auto',
-                bottom: '185px',
-                borderRadius: '26px',
-                overflow: 'hidden',
-                border: '2px solid rgba(237, 241, 123, 0.55)',
-                boxShadow: '0 20px 48px rgba(0, 0, 0, 0.75), 0 0 28px rgba(237, 241, 123, 0.22)',
-                zIndex: 2,
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#000000',
-              }
-            : {
-                position: 'absolute',
-                inset: 0,
-                zIndex: 1,
-                overflow: 'hidden',
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#0D1512',
-              }
-        }
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0D1512',
+        }}
       >
         <video
           ref={videoRef}
@@ -391,57 +368,33 @@ export const Main: React.FC<MainProps> = ({
           }}
         />
 
-        {/* Dedicated Camera Window Viewfinder Overlays when active */}
+        {/* Viewfinder corner brackets when active */}
         {activeMode && cameraStatus === 'ready' && (
           <div
             aria-hidden="true"
             style={{
               position: 'absolute',
-              inset: 0,
+              top: '84px',
+              left: '20px',
+              right: '20px',
+              bottom: '124px',
               pointerEvents: 'none',
               zIndex: 3,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              padding: '16px',
+              padding: '8px',
             }}
           >
             {/* Corner brackets */}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ width: '22px', height: '22px', borderTop: '3px solid var(--yellow)', borderLeft: '3px solid var(--yellow)', borderRadius: '6px 0 0 0' }} />
-              <div style={{ width: '22px', height: '22px', borderTop: '3px solid var(--yellow)', borderRight: '3px solid var(--yellow)', borderRadius: '0 6px 0 0' }} />
-            </div>
-
-            {/* Viewfinder Center Guide */}
-            <div
-              style={{
-                alignSelf: 'center',
-                color: 'var(--yellow)',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                background: 'rgba(17, 26, 22, 0.78)',
-                padding: '4px 14px',
-                borderRadius: '999px',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                border: '1px solid rgba(237, 241, 123, 0.35)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
-              }}
-            >
-              {activeMode === 'read'
-                ? '📖 Camera: Read'
-                : activeMode === 'money'
-                ? '💵 Camera: Money'
-                : activeMode === 'describe'
-                ? '✨ Camera: Describe'
-                : '🛡️ Camera: Alert'}
+              <div style={{ width: '24px', height: '24px', borderTop: '3px solid var(--yellow)', borderLeft: '3px solid var(--yellow)', borderRadius: '6px 0 0 0' }} />
+              <div style={{ width: '24px', height: '24px', borderTop: '3px solid var(--yellow)', borderRight: '3px solid var(--yellow)', borderRadius: '0 6px 0 0' }} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ width: '22px', height: '22px', borderBottom: '3px solid var(--yellow)', borderLeft: '3px solid var(--yellow)', borderRadius: '0 0 0 6px' }} />
-              <div style={{ width: '22px', height: '22px', borderBottom: '3px solid var(--yellow)', borderRight: '3px solid var(--yellow)', borderRadius: '0 0 6px 0' }} />
+              <div style={{ width: '24px', height: '24px', borderBottom: '3px solid var(--yellow)', borderLeft: '3px solid var(--yellow)', borderRadius: '0 0 0 6px' }} />
+              <div style={{ width: '24px', height: '24px', borderBottom: '3px solid var(--yellow)', borderRight: '3px solid var(--yellow)', borderRadius: '0 0 6px 0' }} />
             </div>
           </div>
         )}
@@ -516,11 +469,14 @@ export const Main: React.FC<MainProps> = ({
         <Button
           variant="circle"
           onClick={handleBack}
-          aria-label="Back to welcome screen"
+          aria-label={activeMode ? 'Back to all modes' : 'Back to welcome screen'}
           style={{
             background: 'rgba(20, 35, 30, 0.65)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             color: 'var(--white)',
             border: '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -528,39 +484,41 @@ export const Main: React.FC<MainProps> = ({
           </svg>
         </Button>
 
-        {/* Live Camera Status Badge (Triple tap to toggle debug overlay) */}
-        <div
-          onClick={handleStatusBadgeTap}
-          title="Triple-tap for debug stats"
-          style={{
-            padding: '6px 16px',
-            borderRadius: 'var(--radius-pill)',
-            background: 'rgba(20, 35, 30, 0.72)',
-            backdropFilter: 'var(--glass-blur-sm)',
-            WebkitBackdropFilter: 'var(--glass-blur-sm)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: 'var(--white)',
-            fontSize: '13px',
-            fontWeight: 600,
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        >
-          <span
+        {/* Live Camera Status Badge (only on home screen) */}
+        {!activeMode && (
+          <div
+            onClick={handleStatusBadgeTap}
+            title="Triple-tap for debug stats"
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: cameraStatus === 'ready' ? '#4ADE80' : '#F87171',
-              boxShadow: cameraStatus === 'ready' ? '0 0 8px #4ADE80' : 'none',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-pill)',
+              background: 'rgba(20, 35, 30, 0.72)',
+              backdropFilter: 'var(--glass-blur-sm)',
+              WebkitBackdropFilter: 'var(--glass-blur-sm)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'var(--white)',
+              fontSize: '13px',
+              fontWeight: 600,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+              cursor: 'pointer',
+              userSelect: 'none',
             }}
-          />
-          <span>{cameraStatus === 'ready' ? (isAlertActive ? 'Alert Live' : 'Camera Live') : 'Camera Off'}</span>
-        </div>
+          >
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: cameraStatus === 'ready' ? '#4ADE80' : '#F87171',
+                boxShadow: cameraStatus === 'ready' ? '0 0 8px #4ADE80' : 'none',
+              }}
+            />
+            <span>{cameraStatus === 'ready' ? (isAlertActive ? 'Alert Live' : 'Camera Live') : 'Camera Off'}</span>
+          </div>
+        )}
 
         {/* Hidden Triple-Tap Demo Debug Overlay (Feature 4 Step 7) */}
         {showDebug && (
@@ -692,25 +650,27 @@ export const Main: React.FC<MainProps> = ({
           </aside>
         )}
 
-        {/* Modes / Settings circle button */}
-        <Button
-          id="btn-open-modes"
-          variant="circle"
-          onClick={handleOpenModesScreen}
-          aria-label="View all modes and features"
-          style={{
-            background: 'rgba(20, 35, 30, 0.65)',
-            color: 'var(--white)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-        </Button>
+        {/* Modes / Settings circle button (only on home screen) */}
+        {!activeMode && (
+          <Button
+            id="btn-open-modes"
+            variant="circle"
+            onClick={handleOpenModesScreen}
+            aria-label="View all modes and features"
+            style={{
+              background: 'rgba(20, 35, 30, 0.65)',
+              color: 'var(--white)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </Button>
+        )}
       </header>
 
       {/* Floating 4-Second Auto-Rescan Banner */}
@@ -787,103 +747,57 @@ export const Main: React.FC<MainProps> = ({
         </div>
       )}
 
-      {/* Bottom Sheet with Live Caption and 2x2 Mode Grid */}
-      <Sheet style={{ zIndex: 10, paddingBottom: '16px' }}>
-        {/* Live spoken caption card */}
-        <Caption />
+      {/* Active Mode View: Floating glass blurred button matching 'Get Started' design floating directly over camera */}
+      {activeMode ? (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '32px',
+            left: '20px',
+            right: '20px',
+            maxWidth: '460px',
+            margin: '0 auto',
+            zIndex: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
+          {/* Spoken live caption card floating over camera */}
+          <Caption />
 
-        {activeMode ? (
-          /* Active Mode View: 'Get Started'-style text button displaying function name */
-          <div
+          {/* Button with 'Get Started' design and glass blurred style */}
+          <Button
+            id="active-mode-title-button"
+            variant="glass-slider"
+            fullWidth
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              marginTop: '4px',
-              paddingBottom: '8px',
+              cursor: 'default',
+              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
             }}
+            icon={
+              <span style={{ fontSize: '20px', lineHeight: 1 }}>
+                {activeMode === 'read'
+                  ? '📖'
+                  : activeMode === 'describe'
+                  ? '✨'
+                  : activeMode === 'money'
+                  ? '💵'
+                  : activeMode === 'alert'
+                  ? '🛡️'
+                  : '🎙️'}
+              </span>
+            }
           >
-            <Button
-              id="active-mode-title-button"
-              variant="glass-slider"
-              fullWidth
-              style={{
-                cursor: 'default',
-              }}
-              icon={
-                <span style={{ fontSize: '20px', lineHeight: 1 }}>
-                  {activeMode === 'read'
-                    ? '📖'
-                    : activeMode === 'describe'
-                    ? '✨'
-                    : activeMode === 'money'
-                    ? '💵'
-                    : activeMode === 'alert'
-                    ? '🛡️'
-                    : '🎙️'}
-                </span>
-              }
-            >
-              {getActiveModeTitle(activeMode)}
-            </Button>
-
-            {/* Clean return control and voice talk control */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  cancelRescan()
-                  if (activeMode === 'money') stopMoneyScan()
-                  if (activeMode === 'alert' && isAlertActive) {
-                    stopObstacleDetection()
-                    setIsAlertActive(false)
-                  }
-                  setActiveMode(null)
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--ink)',
-                  opacity: 0.75,
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: '6px 14px',
-                  borderRadius: '999px',
-                }}
-              >
-                ✕ All Modes
-              </button>
-
-              {speechSupported && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    cancelRescan()
-                    if (isAssistantListening) {
-                      stopListening()
-                    } else {
-                      promptAssistantToListen()
-                    }
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: isAssistantListening ? 'var(--yellow)' : 'var(--ink)',
-                    opacity: isAssistantListening ? 1 : 0.75,
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: '6px 14px',
-                    borderRadius: '999px',
-                  }}
-                >
-                  {isAssistantListening ? '🎙️ Listening...' : '🎤 Talk'}
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
+            {getActiveModeTitle(activeMode)}
+          </Button>
+        </div>
+      ) : (
+        /* Bottom Sheet with Live Caption and 2x2 Mode Grid (only on Home screen) */
+        <Sheet style={{ zIndex: 10, paddingBottom: '16px' }}>
+          {/* Live spoken caption card */}
+          <Caption />
           /* 2-Column Responsive Grid of Aesthetic Minimal Mode Cards */
           <div
             style={{
@@ -946,10 +860,8 @@ export const Main: React.FC<MainProps> = ({
               onClick={handleMoney}
             />
           </div>
-        )}
 
-        {/* Floating frosted glass bottom navigation bar (matching 'Get Started' glass effect) */}
-        {!activeMode && (
+          {/* Floating frosted glass bottom navigation bar (matching 'Get Started' glass effect) */}
           <nav
             aria-label="Quick navigation dock"
             style={{
@@ -1118,8 +1030,8 @@ export const Main: React.FC<MainProps> = ({
               <span style={{ fontSize: '11px', fontWeight: 500 }}>Help</span>
             </button>
           </nav>
-        )}
-      </Sheet>
+        </Sheet>
+      )}
     </div>
   )
 }
