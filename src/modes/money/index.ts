@@ -145,8 +145,9 @@ export async function identifyMoney(
 
       options?.onStatusChange?.(`Scanning frame ${frameIndex} of 8...`)
 
-      // Capture frame: 320px long side, JPEG quality 0.7
-      const base64Jpeg = captureFrame(video, 320, 0.7)
+      // Capture frame: 320px center-cropped square (70% focus area), JPEG quality 0.7
+      // Focuses on the banknote without requiring the user to hold it right against the lens
+      const base64Jpeg = captureFrame(video, 320, 0.7, { cropSquare: true, cropScale: 0.70 })
       if (!base64Jpeg) {
         await new Promise((r) => setTimeout(r, 200))
         continue
