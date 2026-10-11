@@ -18,6 +18,35 @@ import { checkHealth, predictFrame } from './api'
 let activeAbortController: AbortController | null = null
 let isScanning = false
 
+export interface MoneyDebugData {
+  frameIndex: number
+  dataUrl: string
+  prediction: MoneyPrediction | null
+  consecutiveWins: number
+  isDecided: boolean
+  decidedGroup: string | null
+}
+
+type DebugListener = (data: MoneyDebugData | null) => void
+const debugListeners = new Set<DebugListener>()
+
+export function onMoneyDebugUpdate(cb: DebugListener): () => void {
+  debugListeners.add(cb)
+  return () => {
+    debugListeners.delete(cb)
+  }
+}
+
+function emitDebug(data: MoneyDebugData | null) {
+  for (const cb of debugListeners) {
+    try {
+      cb(data)
+    } catch (e) {
+      console.warn('Debug listener error:', e)
+    }
+  }
+}
+
 export function isMoneyScanning(): boolean {
   return isScanning
 }
@@ -123,6 +152,16 @@ export async function identifyMoney(
         continue
       }
 
+      const dataUrl = `data:image/jpeg;base64,${base64Jpeg}`
+      emitDebug({
+        frameIndex,
+        dataUrl,
+        prediction: null,
+        consecutiveWins: 0,
+        isDecided: false,
+        decidedGroup: null,
+      })
+
       const imageBlob = base64ToBlob(base64Jpeg)
       let prediction: MoneyPrediction
       try {
@@ -134,7 +173,21 @@ export async function identifyMoney(
         continue
       }
 
+      // Log prediction for every frame as requested
+      console.log(
+        `Frame ${frameIndex}: top=${prediction.top}, top_p=${prediction.top_p}, second_p=${prediction.second_p}, latency_ms=${prediction.latency_ms}`
+      )
+
       const decision = tracker.addFrame(prediction)
+
+      emitDebug({
+        frameIndex,
+        dataUrl,
+        prediction,
+        consecutiveWins: decision.consecutiveWins,
+        isDecided: decision.isDecided,
+        decidedGroup: decision.group,
+      })
 
       if (decision.isDecided && decision.group) {
         decidedGroup = decision.group

@@ -14,7 +14,12 @@ import {
   subscribeDetectorStats,
   DetectorStats,
 } from '../modes/obstacle/detector'
-import { identifyMoney, stopMoneyScan } from '../modes/money'
+import {
+  identifyMoney,
+  stopMoneyScan,
+  onMoneyDebugUpdate,
+  MoneyDebugData,
+} from '../modes/money'
 
 export interface MainProps {
   videoRef: React.RefObject<HTMLVideoElement>
@@ -35,18 +40,22 @@ export const Main: React.FC<MainProps> = ({
   const [isAlertActive, setIsAlertActive] = useState(false)
   const [detectorStats, setDetectorStats] = useState<DetectorStats | null>(null)
   const [showDebug, setShowDebug] = useState(false)
+  const [moneyDebugData, setMoneyDebugData] = useState<MoneyDebugData | null>(null)
+  const isDebugUrl = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1'
   const tapCountRef = useRef(0)
   const lastTapRef = useRef(0)
   const strings = getStrings('en')
 
   useEffect(() => {
-    const unsub = subscribeDetectorStats(setDetectorStats)
+    const unsubDetector = subscribeDetectorStats(setDetectorStats)
+    const unsubMoney = isDebugUrl ? onMoneyDebugUpdate(setMoneyDebugData) : () => {}
     return () => {
-      unsub()
+      unsubDetector()
+      unsubMoney()
       stopObstacleDetection()
       stopMoneyScan()
     }
-  }, [])
+  }, [isDebugUrl])
 
   const handleRead = async () => {
     stopMoneyScan()
@@ -314,6 +323,83 @@ export const Main: React.FC<MainProps> = ({
               </div>
             )}
           </div>
+        )}
+
+        {/* Temporary Money Debug View (visible only with ?debug=1 in URL) */}
+        {isDebugUrl && (
+          <aside
+            id="money-debug-view"
+            aria-label="Money identifier debug view"
+            style={{
+              position: 'absolute',
+              top: '74px',
+              right: '16px',
+              width: '230px',
+              padding: '12px',
+              borderRadius: '16px',
+              background: 'rgba(13, 21, 18, 0.94)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1.5px solid rgba(237, 241, 123, 0.6)',
+              color: 'var(--white)',
+              zIndex: 35,
+              fontSize: '11px',
+              fontFamily: 'monospace',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '4px' }}>
+              <span style={{ color: 'var(--yellow)', fontWeight: 700 }}>JPEG DEBUG</span>
+              <span style={{ fontSize: '10px', color: '#93C5FD' }}>?debug=1</span>
+            </div>
+
+            {moneyDebugData ? (
+              <>
+                <img
+                  src={moneyDebugData.dataUrl}
+                  alt="Exact raw JPEG sent to /predict"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    display: 'block',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Frame:</span>
+                  <span style={{ color: 'var(--yellow)', fontWeight: 600 }}>{moneyDebugData.frameIndex} / 8</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Top:</span>
+                  <span style={{ color: '#4ADE80', fontWeight: 700 }}>{moneyDebugData.prediction?.top ?? 'waiting...'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>top_p:</span>
+                  <span style={{ color: '#93C5FD' }}>{moneyDebugData.prediction ? moneyDebugData.prediction.top_p.toFixed(3) : '-'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>second_p:</span>
+                  <span>{moneyDebugData.prediction ? moneyDebugData.prediction.second_p.toFixed(3) : '-'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Latency:</span>
+                  <span>{moneyDebugData.prediction ? `${moneyDebugData.prediction.latency_ms}ms` : '-'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Streak:</span>
+                  <span style={{ color: moneyDebugData.consecutiveWins >= 3 ? '#4ADE80' : 'var(--yellow)' }}>{moneyDebugData.consecutiveWins} / 3</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '12px 0', textAlign: 'center', opacity: 0.7 }}>
+                Tap Money card to inspect raw JPEG frame
+              </div>
+            )}
+          </aside>
         )}
 
         {/* Modes / Settings circle button */}
