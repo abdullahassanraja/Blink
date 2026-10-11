@@ -290,10 +290,35 @@ export const Main: React.FC<MainProps> = ({
     lastTapRef.current = now
   }
 
+  const getActiveModeTitle = (mode: string | null): string => {
+    switch (mode) {
+      case 'read':
+        return 'Read'
+      case 'describe':
+        return 'Describe'
+      case 'money':
+        return 'Money'
+      case 'alert':
+        return 'Obstacle Alert'
+      case 'assistant':
+        return 'Voice Assistant'
+      default:
+        return 'Camera'
+    }
+  }
+
   const handleBack = () => {
     cancelRescan()
     stopListening()
     stopMoneyScan()
+    if (activeMode) {
+      if (isAlertActive) {
+        stopObstacleDetection()
+        setIsAlertActive(false)
+      }
+      setActiveMode(null)
+      return
+    }
     stopObstacleDetection()
     onBackToWelcome()
   }
@@ -318,17 +343,41 @@ export const Main: React.FC<MainProps> = ({
         justifyContent: 'space-between',
       }}
     >
-      {/* Full-bleed Camera Video Viewport */}
+      {/* Camera Video Viewport (Fullscreen ambient when idle, framed window on top when active) */}
       <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        style={
+          activeMode
+            ? {
+                position: 'absolute',
+                top: '76px',
+                left: '16px',
+                right: '16px',
+                maxWidth: '540px',
+                margin: '0 auto',
+                bottom: '185px',
+                borderRadius: '26px',
+                overflow: 'hidden',
+                border: '2px solid rgba(237, 241, 123, 0.55)',
+                boxShadow: '0 20px 48px rgba(0, 0, 0, 0.75), 0 0 28px rgba(237, 241, 123, 0.22)',
+                zIndex: 2,
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#000000',
+              }
+            : {
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+                overflow: 'hidden',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0D1512',
+              }
+        }
       >
         <video
           ref={videoRef}
@@ -341,6 +390,61 @@ export const Main: React.FC<MainProps> = ({
             objectFit: 'cover',
           }}
         />
+
+        {/* Dedicated Camera Window Viewfinder Overlays when active */}
+        {activeMode && cameraStatus === 'ready' && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '16px',
+            }}
+          >
+            {/* Corner brackets */}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ width: '22px', height: '22px', borderTop: '3px solid var(--yellow)', borderLeft: '3px solid var(--yellow)', borderRadius: '6px 0 0 0' }} />
+              <div style={{ width: '22px', height: '22px', borderTop: '3px solid var(--yellow)', borderRight: '3px solid var(--yellow)', borderRadius: '0 6px 0 0' }} />
+            </div>
+
+            {/* Viewfinder Center Guide */}
+            <div
+              style={{
+                alignSelf: 'center',
+                color: 'var(--yellow)',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                background: 'rgba(17, 26, 22, 0.78)',
+                padding: '4px 14px',
+                borderRadius: '999px',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(237, 241, 123, 0.35)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+              }}
+            >
+              {activeMode === 'read'
+                ? '📖 Camera: Read'
+                : activeMode === 'money'
+                ? '💵 Camera: Money'
+                : activeMode === 'describe'
+                ? '✨ Camera: Describe'
+                : '🛡️ Camera: Alert'}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ width: '22px', height: '22px', borderBottom: '3px solid var(--yellow)', borderLeft: '3px solid var(--yellow)', borderRadius: '0 0 0 6px' }} />
+              <div style={{ width: '22px', height: '22px', borderBottom: '3px solid var(--yellow)', borderRight: '3px solid var(--yellow)', borderRadius: '0 0 6px 0' }} />
+            </div>
+          </div>
+        )}
 
         {/* Fallback / Status overlay if camera is not ready */}
         {cameraStatus !== 'ready' && (
@@ -688,164 +792,197 @@ export const Main: React.FC<MainProps> = ({
         {/* Live spoken caption card */}
         <Caption />
 
-        {/* 2-Column Responsive Grid of Aesthetic Minimal Mode Cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: '14px',
-            marginTop: '4px',
-            paddingBottom: '76px', /* Ensures cards scroll completely clear of the floating dock */
-          }}
-        >
-          {/* Read Mode */}
-          <ModeTile
-            id="read"
-            title={strings.modeRead}
-            subtitle="Labels & Signs"
-            icon="📖"
-            tag="Instant OCR"
-            badgeText="Read Text"
-            imageSrc="/cards/read.jpg"
-            isActive={activeMode === 'read'}
-            onClick={handleRead}
-          />
+        {activeMode ? (
+          /* Active Mode View: 'Get Started'-style text button displaying function name */
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              marginTop: '4px',
+              paddingBottom: '8px',
+            }}
+          >
+            <Button
+              id="active-mode-title-button"
+              variant="glass-slider"
+              fullWidth
+              style={{
+                cursor: 'default',
+              }}
+              icon={
+                <span style={{ fontSize: '20px', lineHeight: 1 }}>
+                  {activeMode === 'read'
+                    ? '📖'
+                    : activeMode === 'describe'
+                    ? '✨'
+                    : activeMode === 'money'
+                    ? '💵'
+                    : activeMode === 'alert'
+                    ? '🛡️'
+                    : '🎙️'}
+                </span>
+              }
+            >
+              {getActiveModeTitle(activeMode)}
+            </Button>
 
-          {/* Describe Mode */}
-          <ModeTile
-            id="describe"
-            title={strings.modeDescribe}
-            subtitle="Scene & Objects"
-            icon="✨"
-            tag="AI Vision"
-            badgeText="Describe"
-            imageSrc="/cards/describe.jpg"
-            isActive={activeMode === 'describe'}
-            onClick={handleDescribe}
-          />
+            {/* Clean return control and voice talk control */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  cancelRescan()
+                  if (activeMode === 'money') stopMoneyScan()
+                  if (activeMode === 'alert' && isAlertActive) {
+                    stopObstacleDetection()
+                    setIsAlertActive(false)
+                  }
+                  setActiveMode(null)
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--ink)',
+                  opacity: 0.75,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '6px 14px',
+                  borderRadius: '999px',
+                }}
+              >
+                ✕ All Modes
+              </button>
 
-          {/* Alert Mode */}
-          <ModeTile
-            id="alert"
-            title={isAlertActive ? 'Stop Alert' : strings.modeAlert}
-            subtitle={isAlertActive ? 'Active • Pinging' : 'Obstacle Safety'}
-            icon={isAlertActive ? '🛑' : '🛡️'}
-            tag={isAlertActive ? 'Live Warning' : 'Real-Time'}
-            badgeText={isAlertActive ? 'Stop Alert' : 'Start Alert'}
-            imageSrc="/cards/alert.jpg"
-            isActive={isAlertActive}
-            onClick={handleToggleAlert}
-          />
+              {speechSupported && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    cancelRescan()
+                    if (isAssistantListening) {
+                      stopListening()
+                    } else {
+                      promptAssistantToListen()
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: isAssistantListening ? 'var(--yellow)' : 'var(--ink)',
+                    opacity: isAssistantListening ? 1 : 0.75,
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                  }}
+                >
+                  {isAssistantListening ? '🎙️ Listening...' : '🎤 Talk'}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* 2-Column Responsive Grid of Aesthetic Minimal Mode Cards */
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: '14px',
+              marginTop: '4px',
+              paddingBottom: '76px', /* Ensures cards scroll completely clear of the floating dock */
+            }}
+          >
+            {/* Read Mode */}
+            <ModeTile
+              id="read"
+              title={strings.modeRead}
+              subtitle="Labels & Signs"
+              icon="📖"
+              tag="Instant OCR"
+              badgeText="Read Text"
+              imageSrc="/cards/read.jpg"
+              isActive={activeMode === 'read'}
+              onClick={handleRead}
+            />
 
-          {/* Money Mode */}
-          <ModeTile
-            id="money"
-            title={strings.modeMoney}
-            subtitle={activeMode === 'money' ? 'Scanning • Up to 8 frames' : 'Rupee Notes'}
-            icon="💵"
-            tag="Currency"
-            badgeText={activeMode === 'money' ? 'Scanning...' : 'Scan Cash'}
-            imageSrc="/cards/money.jpg"
-            isActive={activeMode === 'money'}
-            onClick={handleMoney}
-          />
-        </div>
+            {/* Describe Mode */}
+            <ModeTile
+              id="describe"
+              title={strings.modeDescribe}
+              subtitle="Scene & Objects"
+              icon="✨"
+              tag="AI Vision"
+              badgeText="Describe"
+              imageSrc="/cards/describe.jpg"
+              isActive={activeMode === 'describe'}
+              onClick={handleDescribe}
+            />
+
+            {/* Alert Mode */}
+            <ModeTile
+              id="alert"
+              title={isAlertActive ? 'Stop Alert' : strings.modeAlert}
+              subtitle={isAlertActive ? 'Active • Pinging' : 'Obstacle Safety'}
+              icon={isAlertActive ? '🛑' : '🛡️'}
+              tag={isAlertActive ? 'Live Warning' : 'Real-Time'}
+              badgeText={isAlertActive ? 'Stop Alert' : 'Start Alert'}
+              imageSrc="/cards/alert.jpg"
+              isActive={isAlertActive}
+              onClick={handleToggleAlert}
+            />
+
+            {/* Money Mode */}
+            <ModeTile
+              id="money"
+              title={strings.modeMoney}
+              subtitle={activeMode === 'money' ? 'Scanning • Up to 8 frames' : 'Rupee Notes'}
+              icon="💵"
+              tag="Currency"
+              badgeText={activeMode === 'money' ? 'Scanning...' : 'Scan Cash'}
+              imageSrc="/cards/money.jpg"
+              isActive={activeMode === 'money'}
+              onClick={handleMoney}
+            />
+          </div>
+        )}
 
         {/* Floating frosted glass bottom navigation bar (matching 'Get Started' glass effect) */}
-        <nav
-          aria-label="Quick navigation dock"
-          style={{
-            position: 'sticky',
-            bottom: '4px',
-            zIndex: 20,
-            marginTop: '-64px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'rgba(38, 44, 38, 0.72)',
-            backdropFilter: 'blur(30px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.18)',
-            borderRadius: '999px',
-            padding: '6px 8px',
-            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
-          }}
-        >
-          {/* Camera Tab (Active) */}
-          <button
-            onClick={() => speak('Main camera view active.', { interrupt: true })}
-            aria-label="Camera active"
+        {!activeMode && (
+          <nav
+            aria-label="Quick navigation dock"
             style={{
-              flex: 1,
-              height: '46px',
-              border: 'none',
-              borderRadius: '999px',
-              background: 'rgba(237, 241, 123, 0.22)',
-              borderWidth: '1px',
-              borderStyle: 'solid',
-              borderColor: 'rgba(237, 241, 123, 0.5)',
-              color: 'var(--yellow)',
+              position: 'sticky',
+              bottom: '4px',
+              zIndex: 20,
+              marginTop: '-64px',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              transition: 'all 0.18s ease',
+              justifyContent: 'space-between',
+              background: 'rgba(38, 44, 38, 0.72)',
+              backdropFilter: 'blur(30px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
+              borderRadius: '999px',
+              padding: '6px 8px',
+              boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
             }}
           >
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>📷</span>
-            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '-0.01em' }}>Camera</span>
-          </button>
-
-          {/* Modes Timeline Tab */}
-          <button
-            onClick={handleOpenModesScreen}
-            aria-label="Open modes timeline"
-            style={{
-              flex: 1,
-              height: '46px',
-              border: 'none',
-              borderRadius: '999px',
-              background: 'transparent',
-              color: 'rgba(255, 255, 255, 0.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              transition: 'all 0.18s ease',
-            }}
-          >
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>📋</span>
-            <span style={{ fontSize: '11px', fontWeight: 500 }}>Modes</span>
-          </button>
-
-          {/* Talk / Voice Assistant Tab */}
-          {speechSupported && (
+            {/* Camera Tab (Active) */}
             <button
-              onClick={() => {
-                cancelRescan()
-                if (isAssistantListening) {
-                  stopListening()
-                } else {
-                  promptAssistantToListen()
-                }
-              }}
-              aria-label={isAssistantListening ? 'Stop voice listening' : 'Talk to voice assistant'}
+              onClick={() => speak('Main camera view active.', { interrupt: true })}
+              aria-label="Camera active"
               style={{
                 flex: 1,
                 height: '46px',
                 border: 'none',
                 borderRadius: '999px',
-                background: isAssistantListening ? 'rgba(237, 241, 123, 0.3)' : 'transparent',
-                borderColor: isAssistantListening ? 'var(--yellow)' : 'transparent',
+                background: 'rgba(237, 241, 123, 0.22)',
                 borderWidth: '1px',
                 borderStyle: 'solid',
-                color: isAssistantListening ? 'var(--yellow)' : 'rgba(255, 255, 255, 0.85)',
+                borderColor: 'rgba(237, 241, 123, 0.5)',
+                color: 'var(--yellow)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -856,70 +993,132 @@ export const Main: React.FC<MainProps> = ({
                 transition: 'all 0.18s ease',
               }}
             >
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAssistantListening ? '🎙️' : '🎤'}</span>
-              <span style={{ fontSize: '11px', fontWeight: 600 }}>{isAssistantListening ? 'Listening' : 'Talk'}</span>
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>📷</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '-0.01em' }}>Camera</span>
             </button>
-          )}
 
-          {/* Obstacle Alert Tab */}
-          <button
-            onClick={handleToggleAlert}
-            aria-label={isAlertActive ? 'Stop obstacle alert' : 'Start obstacle alert'}
-            style={{
-              flex: 1,
-              height: '46px',
-              border: 'none',
-              borderRadius: '999px',
-              background: isAlertActive ? 'rgba(248, 113, 113, 0.25)' : 'transparent',
-              borderColor: isAlertActive ? 'rgba(248, 113, 113, 0.6)' : 'transparent',
-              borderWidth: isAlertActive ? '1px' : '0',
-              borderStyle: 'solid',
-              color: isAlertActive ? '#FCA5A5' : 'rgba(255, 255, 255, 0.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              transition: 'all 0.18s ease',
-            }}
-          >
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAlertActive ? '🛑' : '🛡️'}</span>
-            <span style={{ fontSize: '11px', fontWeight: 500 }}>{isAlertActive ? 'Alerting' : 'Alert'}</span>
-          </button>
+            {/* Modes Timeline Tab */}
+            <button
+              onClick={handleOpenModesScreen}
+              aria-label="Open modes timeline"
+              style={{
+                flex: 1,
+                height: '46px',
+                border: 'none',
+                borderRadius: '999px',
+                background: 'transparent',
+                color: 'rgba(255, 255, 255, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>📋</span>
+              <span style={{ fontSize: '11px', fontWeight: 500 }}>Modes</span>
+            </button>
 
-          {/* Spoken Help Tab */}
-          <button
-            onClick={() => {
-              cancelRescan()
-              speak(strings.assistantGreeting, { interrupt: true })
-              if (speechSupported) {
-                promptAssistantToListen()
-              }
-            }}
-            aria-label="Spoken help"
-            style={{
-              flex: 1,
-              height: '46px',
-              border: 'none',
-              borderRadius: '999px',
-              background: 'transparent',
-              color: 'rgba(255, 255, 255, 0.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              transition: 'all 0.18s ease',
-            }}
-          >
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>❓</span>
-            <span style={{ fontSize: '11px', fontWeight: 500 }}>Help</span>
-          </button>
-        </nav>
+            {/* Talk / Voice Assistant Tab */}
+            {speechSupported && (
+              <button
+                onClick={() => {
+                  cancelRescan()
+                  if (isAssistantListening) {
+                    stopListening()
+                  } else {
+                    promptAssistantToListen()
+                  }
+                }}
+                aria-label={isAssistantListening ? 'Stop voice listening' : 'Talk to voice assistant'}
+                style={{
+                  flex: 1,
+                  height: '46px',
+                  border: 'none',
+                  borderRadius: '999px',
+                  background: isAssistantListening ? 'rgba(237, 241, 123, 0.3)' : 'transparent',
+                  borderColor: isAssistantListening ? 'var(--yellow)' : 'transparent',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: isAssistantListening ? 'var(--yellow)' : 'rgba(255, 255, 255, 0.85)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAssistantListening ? '🎙️' : '🎤'}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600 }}>{isAssistantListening ? 'Listening' : 'Talk'}</span>
+              </button>
+            )}
+
+            {/* Obstacle Alert Tab */}
+            <button
+              onClick={handleToggleAlert}
+              aria-label={isAlertActive ? 'Stop obstacle alert' : 'Start obstacle alert'}
+              style={{
+                flex: 1,
+                height: '46px',
+                border: 'none',
+                borderRadius: '999px',
+                background: isAlertActive ? 'rgba(248, 113, 113, 0.25)' : 'transparent',
+                borderColor: isAlertActive ? 'rgba(248, 113, 113, 0.6)' : 'transparent',
+                borderWidth: isAlertActive ? '1px' : '0',
+                borderStyle: 'solid',
+                color: isAlertActive ? '#FCA5A5' : 'rgba(255, 255, 255, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAlertActive ? '🛑' : '🛡️'}</span>
+              <span style={{ fontSize: '11px', fontWeight: 500 }}>{isAlertActive ? 'Alerting' : 'Alert'}</span>
+            </button>
+
+            {/* Spoken Help Tab */}
+            <button
+              onClick={() => {
+                cancelRescan()
+                speak(strings.assistantGreeting, { interrupt: true })
+                if (speechSupported) {
+                  promptAssistantToListen()
+                }
+              }}
+              aria-label="Spoken help"
+              style={{
+                flex: 1,
+                height: '46px',
+                border: 'none',
+                borderRadius: '999px',
+                background: 'transparent',
+                color: 'rgba(255, 255, 255, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>❓</span>
+              <span style={{ fontSize: '11px', fontWeight: 500 }}>Help</span>
+            </button>
+          </nav>
+        )}
       </Sheet>
     </div>
   )
