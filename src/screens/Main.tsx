@@ -14,6 +14,7 @@ import {
   subscribeDetectorStats,
   DetectorStats,
 } from '../modes/obstacle/detector'
+import { identifyMoney, stopMoneyScan } from '../modes/money'
 
 export interface MainProps {
   videoRef: React.RefObject<HTMLVideoElement>
@@ -43,10 +44,12 @@ export const Main: React.FC<MainProps> = ({
     return () => {
       unsub()
       stopObstacleDetection()
+      stopMoneyScan()
     }
   }, [])
 
   const handleRead = async () => {
+    stopMoneyScan()
     if (isAlertActive) {
       stopObstacleDetection()
       setIsAlertActive(false)
@@ -56,6 +59,7 @@ export const Main: React.FC<MainProps> = ({
   }
 
   const handleDescribe = async () => {
+    stopMoneyScan()
     if (isAlertActive) {
       stopObstacleDetection()
       setIsAlertActive(false)
@@ -65,6 +69,7 @@ export const Main: React.FC<MainProps> = ({
   }
 
   const handleToggleAlert = async () => {
+    stopMoneyScan()
     if (isAlertActive) {
       stopObstacleDetection()
       stopSpeaking()
@@ -81,6 +86,15 @@ export const Main: React.FC<MainProps> = ({
     }
   }
 
+  const handleMoney = async () => {
+    if (isAlertActive) {
+      stopObstacleDetection()
+      setIsAlertActive(false)
+    }
+    setActiveMode('money')
+    await identifyMoney(videoRef.current, { lang: 'en' })
+  }
+
   const handleStatusBadgeTap = () => {
     const now = Date.now()
     if (now - lastTapRef.current < 400) {
@@ -95,14 +109,6 @@ export const Main: React.FC<MainProps> = ({
     lastTapRef.current = now
   }
 
-  const handleModeClick = (modeKey: 'read' | 'describe' | 'alert' | 'money', spokenText: string) => {
-    if (isAlertActive) {
-      stopObstacleDetection()
-      setIsAlertActive(false)
-    }
-    setActiveMode(modeKey)
-    speak(spokenText, { interrupt: true })
-  }
 
   return (
     <div
@@ -389,13 +395,13 @@ export const Main: React.FC<MainProps> = ({
           <ModeTile
             id="money"
             title={strings.modeMoney}
-            subtitle="Rupee Notes"
+            subtitle={activeMode === 'money' ? 'Scanning • Up to 8 frames' : 'Rupee Notes'}
             icon="💵"
             tag="Currency"
-            badgeText="Scan Cash"
+            badgeText={activeMode === 'money' ? 'Scanning...' : 'Scan Cash'}
             imageSrc="/cards/money.jpg"
             isActive={activeMode === 'money'}
-            onClick={() => handleModeClick('money', 'Money mode selected. Scanning rupee banknotes.')}
+            onClick={handleMoney}
           />
         </div>
 

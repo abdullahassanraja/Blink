@@ -50,8 +50,10 @@ export interface StringSet {
 
   // Speech: money mode
   moneyScanning: string
+  moneyGettingReady: string
   moneyNotSure: string
   moneyNoNote: string
+  moneyOffline: string
 
   // Speech: voice commands
   helpText: string
@@ -121,8 +123,10 @@ export const strings: Record<Lang, StringSet> = {
 
     // Speech: money mode
     moneyScanning: 'Scanning note...',
+    moneyGettingReady: 'Getting ready.',
     moneyNotSure: 'I am not sure. Hold the note flat and closer.',
     moneyNoNote: 'I do not see a note.',
+    moneyOffline: 'Money needs internet right now.',
 
     // Speech: voice commands
     helpText: 'Say read, describe, alert, money, stop, repeat, or help.',
@@ -191,8 +195,10 @@ export const strings: Record<Lang, StringSet> = {
 
     // Speech: money mode
     moneyScanning: 'نوٹ اسکین ہو رہا ہے...',
+    moneyGettingReady: 'تیاری ہو رہی ہے۔',
     moneyNotSure: 'مجھے یقین نہیں۔ نوٹ کو سیدھا اور قریب رکھیں۔',
     moneyNoNote: 'مجھے کوئی نوٹ نظر نہیں آ رہا۔',
+    moneyOffline: 'پیسوں کے لیے انٹرنیٹ ضروری ہے۔',
 
     // Speech: voice commands
     helpText: 'پڑھیں، بیان کریں، الرٹ، پیسے، رکیں، دہرائیں، یا مدد کہیں۔',
@@ -222,4 +228,43 @@ export const strings: Record<Lang, StringSet> = {
 /** Get strings for a given language, falling back to English. */
 export function getStrings(lang: Lang = 'en'): StringSet {
   return strings[lang] ?? strings.en
+}
+
+export const DENOMINATION_WORDS: Record<Lang, Record<string, string>> = {
+  en: {
+    '10Rs': 'Ten rupees.',
+    '20Rs': 'Twenty rupees.',
+    '50Rs': 'Fifty rupees.',
+    '100Rs': 'One hundred rupees.',
+    '500Rs': 'Five hundred rupees.',
+    '1000Rs': 'One thousand rupees.',
+    '5000Rs': 'Five thousand rupees.',
+    'others': 'I do not see a note.',
+  },
+  ur: {
+    '10Rs': 'دس روپے۔',
+    '20Rs': 'بیس روپے۔',
+    '50Rs': 'پچاس روپے۔',
+    '100Rs': 'ایک سو روپے۔',
+    '500Rs': 'پانچ سو روپے۔',
+    '1000Rs': 'ایک ہزار روپے۔',
+    '5000Rs': 'پانچ ہزار روپے۔',
+    'others': 'مجھے کوئی نوٹ نظر نہیں آ رہا۔',
+  },
+}
+
+export function getDenominationWords(group: string, lang: Lang = 'en'): string {
+  const langWords = DENOMINATION_WORDS[lang] ?? DENOMINATION_WORDS.en
+  if (langWords[group]) {
+    return langWords[group]
+  }
+  if (group === 'others') {
+    return getStrings(lang).moneyNoNote
+  }
+  // Fallback: extract digits if formatted like "1000Rs"
+  const digits = group.replace(/[^\d]/g, '')
+  if (digits) {
+    return `${digits} rupees.`
+  }
+  return getStrings(lang).moneyNotSure
 }
