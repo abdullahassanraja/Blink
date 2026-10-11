@@ -101,6 +101,8 @@ export const Main: React.FC<MainProps> = ({
       setIsAlertActive(false)
     }
     setActiveMode('read')
+    playChime(587.33, 0.12)
+    await speak(strings.assistantOpeningRead, { interrupt: true })
     const result = await readText(videoRef.current)
     if (result) {
       lastSpokenRef.current = result.text
@@ -118,6 +120,8 @@ export const Main: React.FC<MainProps> = ({
       setIsAlertActive(false)
     }
     setActiveMode('describe')
+    playChime(659.25, 0.12)
+    await speak(strings.assistantOpeningDescribe, { interrupt: true })
     await describeScene(videoRef.current)
   }
 
@@ -147,12 +151,42 @@ export const Main: React.FC<MainProps> = ({
       setIsAlertActive(false)
     }
     setActiveMode('money')
+    playChime(587.33, 0.12)
+    await speak(strings.assistantOpeningMoney, { interrupt: true })
     const result = await identifyMoney(videoRef.current, { lang: 'en' })
     if (result) {
       lastSpokenRef.current = result.spokenText
       if (!result.ok && isRescanEligible(result.reason)) {
         scheduleRescan('money')
       }
+    }
+  }
+
+  // Triggered on touching the active button or tapping the camera view
+  const handleActiveAction = async () => {
+    if (!activeMode) return
+    cancelRescan()
+    playChime(587.33, 0.12)
+    if (activeMode === 'read') {
+      const result = await readText(videoRef.current)
+      if (result) {
+        lastSpokenRef.current = result.text
+        if (!result.ok && isRescanEligible(result.reason)) {
+          scheduleRescan('read')
+        }
+      }
+    } else if (activeMode === 'describe') {
+      await describeScene(videoRef.current)
+    } else if (activeMode === 'money') {
+      const result = await identifyMoney(videoRef.current, { lang: 'en' })
+      if (result) {
+        lastSpokenRef.current = result.spokenText
+        if (!result.ok && isRescanEligible(result.reason)) {
+          scheduleRescan('money')
+        }
+      }
+    } else if (activeMode === 'alert') {
+      await handleToggleAlert()
     }
   }
 
@@ -224,15 +258,12 @@ export const Main: React.FC<MainProps> = ({
     const { command } = match
     switch (command) {
       case 'read':
-        await speak(strings.assistantOpeningRead, { interrupt: true })
         await handleRead()
         break
       case 'describe':
-        await speak(strings.assistantOpeningDescribe, { interrupt: true })
         await handleDescribe()
         break
       case 'money':
-        await speak(strings.assistantOpeningMoney, { interrupt: true })
         await handleMoney()
         break
       case 'alert':
@@ -345,6 +376,7 @@ export const Main: React.FC<MainProps> = ({
     >
       {/* Full-bleed Camera Video Viewport (Rest of the screen is camera) */}
       <div
+        onClick={activeMode ? handleActiveAction : undefined}
         style={{
           position: 'absolute',
           inset: 0,
@@ -354,6 +386,7 @@ export const Main: React.FC<MainProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           background: '#0D1512',
+          cursor: activeMode ? 'pointer' : 'default',
         }}
       >
         <video
@@ -772,8 +805,10 @@ export const Main: React.FC<MainProps> = ({
             id="active-mode-title-button"
             variant="glass-slider"
             fullWidth
+            onClick={handleActiveAction}
+            aria-label={`Tap to ${activeMode === 'read' ? 'read text' : activeMode === 'describe' ? 'describe scene' : activeMode === 'money' ? 'scan money' : 'toggle alert'}`}
             style={{
-              cursor: 'default',
+              cursor: 'pointer',
               boxShadow: '0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
             }}
             icon={

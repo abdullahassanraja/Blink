@@ -132,10 +132,14 @@ export const Button: React.FC<ButtonProps> = ({
           justifyContent: 'space-between',
           color: 'var(--white)',
           boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35)',
+          cursor: 'pointer',
+          userSelect: 'none',
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation',
         }}
         {...rest}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '18px', pointerEvents: 'none' }}>
           <span
             style={{
               color: 'rgba(255, 255, 255, 0.72)',
@@ -172,6 +176,7 @@ export const Button: React.FC<ButtonProps> = ({
             justifyContent: 'center',
             boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
             flexShrink: 0,
+            pointerEvents: 'none',
           }}
         >
           {icon || (

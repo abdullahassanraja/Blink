@@ -91,6 +91,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
           textAlign: 'left',
           userSelect: 'none',
           WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation',
           border: isActive
             ? '2px solid var(--yellow)'
             : isHovered
