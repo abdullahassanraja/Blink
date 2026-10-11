@@ -36,6 +36,7 @@ export interface MainProps {
   cameraStatus: CameraStatus
   cameraErrorMessage: string | null
   onStartCamera?: () => Promise<boolean>
+  onStopCamera?: () => void
   onOpenModes: () => void
   onBackToWelcome: () => void
 }
@@ -45,6 +46,7 @@ export const Main: React.FC<MainProps> = ({
   cameraStatus,
   cameraErrorMessage,
   onStartCamera,
+  onStopCamera,
   onOpenModes,
   onBackToWelcome,
 }) => {
@@ -67,12 +69,19 @@ export const Main: React.FC<MainProps> = ({
   const [isAssistantListening, setIsAssistantListening] = useState(false)
   const speechSupported = typeof window !== 'undefined' && isSpeechRecognitionSupported()
 
-  // Ensure camera stream is attached to video element if ready
+  // Turn camera OFF automatically when user is in the menu screen (activeMode === null)
   useEffect(() => {
-    if (videoRef.current && cameraStatus === 'ready' && !videoRef.current.srcObject && onStartCamera) {
+    if (!activeMode) {
+      onStopCamera?.()
+    }
+  }, [activeMode, onStopCamera])
+
+  // Attach camera stream when an active mode is selected and camera status is ready
+  useEffect(() => {
+    if (activeMode && videoRef.current && cameraStatus === 'ready' && !videoRef.current.srcObject && onStartCamera) {
       onStartCamera()
     }
-  }, [cameraStatus, onStartCamera, videoRef])
+  }, [activeMode, cameraStatus, onStartCamera, videoRef])
 
   const cancelRescan = useCallback(() => {
     if (rescanTimerRef.current) {
@@ -144,6 +153,7 @@ export const Main: React.FC<MainProps> = ({
       stopSpeaking()
       setIsAlertActive(false)
       setActiveMode(null)
+      onStopCamera?.()
       speak(strings.alertOff, { interrupt: true })
     } else {
       setActiveMode('alert')
@@ -256,6 +266,7 @@ export const Main: React.FC<MainProps> = ({
           setIsAlertActive(false)
         }
         setActiveMode('assistant')
+        await onStartCamera?.()
         const result = await askAssistant(videoRef.current, cleanPrompt, { lang: 'en' })
         if (result && result.text) {
           lastSpokenRef.current = result.text
@@ -301,14 +312,15 @@ export const Main: React.FC<MainProps> = ({
           setIsAlertActive(false)
         }
         setActiveMode(null)
+        onStopCamera?.()
         await speak(strings.assistantStopped, { interrupt: true })
         break
     }
   }
 
-  // Assistant conversational greeting when camera initializes
+  // Assistant conversational greeting when entering menu screen
   useEffect(() => {
-    if (cameraStatus === 'ready' && !hasGreetedRef.current) {
+    if (!hasGreetedRef.current) {
       hasGreetedRef.current = true
       const runGreeting = async () => {
         await speak(strings.assistantGreeting, { interrupt: true })
@@ -318,7 +330,7 @@ export const Main: React.FC<MainProps> = ({
       }
       runGreeting()
     }
-  }, [cameraStatus, speechSupported])
+  }, [speechSupported])
 
   const handleStatusBadgeTap = () => {
     const now = Date.now()
@@ -361,9 +373,11 @@ export const Main: React.FC<MainProps> = ({
         setIsAlertActive(false)
       }
       setActiveMode(null)
+      onStopCamera?.()
       return
     }
     stopObstacleDetection()
+    onStopCamera?.()
     onBackToWelcome()
   }
 
@@ -445,8 +459,8 @@ export const Main: React.FC<MainProps> = ({
           </div>
         )}
 
-        {/* Fallback / Status overlay if camera is not ready */}
-        {cameraStatus !== 'ready' && (
+        {/* Fallback / Status overlay if camera is requested in active mode but not ready */}
+        {activeMode && cameraStatus !== 'ready' && (
           <div
             style={{
               position: 'absolute',
@@ -530,7 +544,7 @@ export const Main: React.FC<MainProps> = ({
           </svg>
         </Button>
 
-        {/* Live Camera Status Badge (only on home screen) */}
+        {/* Assistant Ready Status Badge (only on home screen) */}
         {!activeMode && (
           <div
             onClick={handleStatusBadgeTap}
@@ -558,11 +572,11 @@ export const Main: React.FC<MainProps> = ({
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: cameraStatus === 'ready' ? '#4ADE80' : '#F87171',
-                boxShadow: cameraStatus === 'ready' ? '0 0 8px #4ADE80' : 'none',
+                background: '#4ADE80',
+                boxShadow: '0 0 8px #4ADE80',
               }}
             />
-            <span>{cameraStatus === 'ready' ? (isAlertActive ? 'Alert Live' : 'Camera Live') : 'Camera Off'}</span>
+            <span>Blink Ready</span>
           </div>
         )}
 
@@ -936,27 +950,28 @@ export const Main: React.FC<MainProps> = ({
               boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.22)',
             }}
           >
-            {/* Camera Tab (Opens live camera viewfinder) */}
+            {/* Menu Tab (Active when in menu screen) */}
             <button
-              onClick={async () => {
-                cancelRescan()
-                setActiveMode('camera')
-                await onStartCamera?.()
-                speak('Main camera viewfinder active.', { interrupt: true })
+              onClick={() => {
+                if (activeMode) {
+                  handleBack()
+                } else {
+                  speak('Menu active. Tap Read, Describe, Alert, or Money to start.', { interrupt: true })
+                }
               }}
-              aria-label="Open camera viewfinder"
+              aria-label="Menu screen active"
               style={{
                 flex: 1,
                 height: '46px',
                 minWidth: 0,
                 padding: '2px 4px',
-                border: activeMode === 'camera' ? '1px solid rgba(237, 241, 123, 0.7)' : '1px solid rgba(237, 241, 123, 0.45)',
+                border: !activeMode ? '1px solid rgba(237, 241, 123, 0.7)' : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '999px',
-                background: 'rgba(237, 241, 123, 0.22)',
+                background: !activeMode ? 'rgba(237, 241, 123, 0.22)' : 'rgba(255, 255, 255, 0.05)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                color: 'var(--yellow)',
-                boxShadow: '0 4px 14px rgba(237, 241, 123, 0.2)',
+                color: !activeMode ? 'var(--yellow)' : 'rgba(255, 255, 255, 0.88)',
+                boxShadow: !activeMode ? '0 4px 14px rgba(237, 241, 123, 0.2)' : 'none',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -969,8 +984,8 @@ export const Main: React.FC<MainProps> = ({
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
-              <span style={{ fontSize: '15px', lineHeight: 1 }}>📷</span>
-              <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 600, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Camera</span>
+              <span style={{ fontSize: '15px', lineHeight: 1 }}>🏠</span>
+              <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 600, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Menu</span>
             </button>
 
             {/* Modes Timeline Tab */}

@@ -10,12 +10,13 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome')
   const camera = useCamera()
 
-  const handleStartFromWelcome = async () => {
+  const handleStartFromWelcome = () => {
     setCurrentScreen('main')
-    await camera.start()
+    // Camera remains OFF in menu screen until user selects a mode
   }
 
   const handleOpenModes = () => {
+    camera.stop()
     setCurrentScreen('modes')
   }
 
@@ -40,6 +41,7 @@ export default function App() {
           cameraStatus={camera.status}
           cameraErrorMessage={camera.errorMessage}
           onStartCamera={camera.start}
+          onStopCamera={camera.stop}
           onOpenModes={handleOpenModes}
           onBackToWelcome={handleBackToWelcome}
         />
