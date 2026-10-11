@@ -17,12 +17,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
     // 1. Mobile audio unlock on direct tap
     unlockSpeech()
 
-    // 2. Speak greeting if voice enabled
-    if (voiceEnabled) {
-      speak(strings.greeting, { interrupt: true })
-    }
-
-    // 3. Notify parent to start camera and transition to Main screen
+    // 2. Transition to Main screen where assistant onboarding initiates
     onStart()
   }
 

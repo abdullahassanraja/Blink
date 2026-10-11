@@ -12,11 +12,19 @@ import { isOffline } from '../../core/offline'
 import { recordMetric } from '../../core/metrics'
 import { getStrings, getDenominationWords } from '../../config/strings'
 import { speak } from '../../speech/speak'
+import { unsure } from '../../core/confidence'
 import { MoneyConfidenceTracker, MoneyPrediction } from './confidence'
 import { checkHealth, predictFrame } from './api'
 
 let activeAbortController: AbortController | null = null
 let isScanning = false
+
+export interface MoneyResult {
+  ok: boolean
+  group: string | null
+  spokenText: string
+  reason?: 'not_sure' | 'no_note' | 'offline' | 'aborted' | 'error'
+}
 
 export interface MoneyDebugData {
   frameIndex: number
@@ -75,7 +83,7 @@ export async function identifyMoney(
     onStatusChange?: (status: string) => void
     lang?: 'en' | 'ur'
   }
-): Promise<void> {
+): Promise<MoneyResult> {
   const lang = options?.lang ?? 'en'
   const strings = getStrings(lang)
   const startTime = Date.now()
@@ -90,7 +98,7 @@ export async function identifyMoney(
       timestamp: new Date().toISOString(),
       details: 'Device is offline',
     })
-    return
+    return { ok: false, group: null, spokenText: strings.moneyOffline, reason: 'offline' }
   }
 
   // 2. Cancel any existing session
@@ -126,12 +134,12 @@ export async function identifyMoney(
           details: 'Health check failed or timed out',
         })
       }
-      return
+      return { ok: false, group: null, spokenText: strings.moneyOffline, reason: 'offline' }
     }
 
     if (!video) {
       speak(strings.cameraError, { interrupt: true })
-      return
+      return { ok: false, group: null, spokenText: strings.cameraError, reason: 'error' }
     }
 
     // 4. Multi-frame capture & classification loop (up to 8 frames)
@@ -140,7 +148,7 @@ export async function identifyMoney(
 
     for (let frameIndex = 1; frameIndex <= 8; frameIndex++) {
       if (controller.signal.aborted || !isScanning) {
-        return
+        return { ok: false, group: null, spokenText: '', reason: 'aborted' }
       }
 
       options?.onStatusChange?.(`Scanning frame ${frameIndex} of 8...`)
@@ -203,26 +211,38 @@ export async function identifyMoney(
     const totalDuration = Date.now() - startTime
 
     if (decidedGroup) {
-      let spokenMessage: string
       if (decidedGroup === 'others') {
-        spokenMessage = strings.moneyNoNote
+        const spokenMessage = unsure('money_no_note', lang)
+        options?.onStatusChange?.(spokenMessage)
+        await speak(spokenMessage, { interrupt: true })
+
+        recordMetric({
+          mode: 'money',
+          durationMs: totalDuration,
+          source: 'money_service',
+          timestamp: new Date().toISOString(),
+          details: `Decided: others in ${tracker.getFrameCount()} frames`,
+        })
+
+        return { ok: false, group: 'others', spokenText: spokenMessage, reason: 'no_note' }
       } else {
-        spokenMessage = getDenominationWords(decidedGroup, lang)
+        const spokenMessage = getDenominationWords(decidedGroup, lang)
+        options?.onStatusChange?.(spokenMessage)
+        await speak(spokenMessage, { interrupt: true })
+
+        recordMetric({
+          mode: 'money',
+          durationMs: totalDuration,
+          source: 'money_service',
+          timestamp: new Date().toISOString(),
+          details: `Decided: ${decidedGroup} in ${tracker.getFrameCount()} frames`,
+        })
+
+        return { ok: true, group: decidedGroup, spokenText: spokenMessage }
       }
-
-      options?.onStatusChange?.(spokenMessage)
-      await speak(spokenMessage, { interrupt: true })
-
-      recordMetric({
-        mode: 'money',
-        durationMs: totalDuration,
-        source: 'money_service',
-        timestamp: new Date().toISOString(),
-        details: `Decided: ${decidedGroup} in ${tracker.getFrameCount()} frames`,
-      })
     } else {
       // Reached 8 frames without meeting confidence threshold
-      const unsureMessage = strings.moneyNotSure
+      const unsureMessage = unsure('money_not_sure', lang)
       options?.onStatusChange?.(unsureMessage)
       await speak(unsureMessage, { interrupt: true })
 
@@ -233,10 +253,12 @@ export async function identifyMoney(
         timestamp: new Date().toISOString(),
         details: `Unsure after ${tracker.getFrameCount()} frames`,
       })
+
+      return { ok: false, group: null, spokenText: unsureMessage, reason: 'not_sure' }
     }
   } catch (err: any) {
     if (err?.name === 'AbortError') {
-      return
+      return { ok: false, group: null, spokenText: '', reason: 'aborted' }
     }
     console.error('Money identification error:', err)
     speak(strings.moneyOffline, { interrupt: true })
@@ -247,6 +269,7 @@ export async function identifyMoney(
       timestamp: new Date().toISOString(),
       details: `Error: ${err?.message || err}`,
     })
+    return { ok: false, group: null, spokenText: strings.moneyOffline, reason: 'error' }
   } finally {
     isScanning = false
     activeAbortController = null

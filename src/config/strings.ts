@@ -58,6 +58,18 @@ export interface StringSet {
   // Speech: voice commands
   helpText: string
   commandNotUnderstood: string
+  assistantGreeting: string
+  assistantListening: string
+  assistantRescanningCountdown: string
+  assistantRescanningNow: string
+  assistantOpeningRead: string
+  assistantOpeningDescribe: string
+  assistantOpeningMoney: string
+  assistantOpeningAlert: string
+  assistantAlertStopped: string
+  assistantStopped: string
+  assistantRepeatNone: string
+  voiceNotSupported: string
 
   // Speech: errors
   rateLimited: string
@@ -131,6 +143,18 @@ export const strings: Record<Lang, StringSet> = {
     // Speech: voice commands
     helpText: 'Say read, describe, alert, money, stop, repeat, or help.',
     commandNotUnderstood: 'I did not catch that. Try again.',
+    assistantGreeting: 'Welcome to Blink. What would you like to do? You can say: Read, Describe, Money, or Alert.',
+    assistantListening: 'Listening...',
+    assistantRescanningCountdown: 'Rescanning in 4 seconds. Hold steady.',
+    assistantRescanningNow: 'Scanning again.',
+    assistantOpeningRead: 'Opening Read.',
+    assistantOpeningDescribe: 'Opening Describe.',
+    assistantOpeningMoney: 'Opening Money.',
+    assistantOpeningAlert: 'Obstacle alert on.',
+    assistantAlertStopped: 'Alert stopped.',
+    assistantStopped: 'Stopped.',
+    assistantRepeatNone: 'Nothing to repeat yet.',
+    voiceNotSupported: 'Voice recognition is not supported in this browser. Please use the buttons.',
 
     // Speech: errors
     rateLimited: 'Too many requests. Please wait a moment.',
@@ -203,6 +227,18 @@ export const strings: Record<Lang, StringSet> = {
     // Speech: voice commands
     helpText: 'پڑھیں، بیان کریں، الرٹ، پیسے، رکیں، دہرائیں، یا مدد کہیں۔',
     commandNotUnderstood: 'سمجھ نہ آیا۔ دوبارہ کوشش کریں۔',
+    assistantGreeting: 'Blink میں خوش آمدید۔ آپ کیا کرنا چاہتے ہیں؟ آپ کہہ سکتے ہیں: پڑھیں، بیان کریں، پیسے، یا الرٹ۔',
+    assistantListening: 'سن رہا ہے...',
+    assistantRescanningCountdown: 'چار سیکنڈ میں دوبارہ اسکین کر رہے ہیں۔',
+    assistantRescanningNow: 'دوبارہ اسکین ہو رہا ہے۔',
+    assistantOpeningRead: 'پڑھنا شروع ہو رہا ہے۔',
+    assistantOpeningDescribe: 'بیان شروع ہو رہا ہے۔',
+    assistantOpeningMoney: 'پیسے جانچنا شروع ہو رہا ہے۔',
+    assistantOpeningAlert: 'الرٹ شروع ہو گیا۔',
+    assistantAlertStopped: 'الرٹ بند ہو گیا۔',
+    assistantStopped: 'روک دیا گیا۔',
+    assistantRepeatNone: 'دہرانے کے لیے کچھ نہیں ہے۔',
+    voiceNotSupported: 'اس براؤزر میں آواز کی شناخت کی سہولت نہیں۔ براہ کرم بٹن استعمال کریں۔',
 
     // Speech: errors
     rateLimited: 'بہت زیادہ درخواستیں۔ تھوڑا انتظار کریں۔',

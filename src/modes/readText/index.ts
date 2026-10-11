@@ -13,11 +13,18 @@ import { isOffline, runOfflineOCR } from '../../core/offline'
 import { speak } from '../../speech/speak'
 import { playChime } from '../../speech/sound'
 import { strings } from '../../config/strings'
+import { unsure } from '../../core/confidence'
 
 export interface ReadResponse {
   text: string
   type: 'medicine' | 'sign' | 'menu' | 'other'
   legible: boolean
+}
+
+export interface ReadResult {
+  ok: boolean
+  text: string
+  reason?: 'unlegible' | 'camera' | 'rate_limited' | 'network' | 'error'
 }
 
 export interface ReadTextOptions {
@@ -28,7 +35,7 @@ export interface ReadTextOptions {
 export async function readText(
   video: HTMLVideoElement | null,
   options: ReadTextOptions = {}
-): Promise<void> {
+): Promise<ReadResult> {
   const { lang = 'en', onProgress } = options
   const langStrings = strings[lang] ?? strings.en
   const startTime = Date.now()
@@ -40,14 +47,15 @@ export async function readText(
 
   if (!video) {
     speak(langStrings.cameraError, { interrupt: true, lang })
-    return
+    return { ok: false, text: langStrings.cameraError, reason: 'camera' }
   }
 
   // 2. Capture frame downscaled to max 1024px JPEG
   const base64Jpeg = captureFrame(video)
   if (!base64Jpeg) {
-    speak('Could not capture frame. Try again.', { interrupt: true, lang })
-    return
+    const msg = 'Could not capture frame. Try again.'
+    speak(msg, { interrupt: true, lang })
+    return { ok: false, text: msg, reason: 'camera' }
   }
 
   // 3. Check vision cache using 16x16 grayscale hash
@@ -63,7 +71,7 @@ export async function readText(
       details: cached.type,
     })
     speak(cached.text, { interrupt: true, lang })
-    return
+    return { ok: true, text: cached.text }
   }
 
   // 4. Handle Offline mode directly
@@ -80,11 +88,14 @@ export async function readText(
     })
 
     if (!ocrText) {
-      speak(langStrings.readUnlegible, { interrupt: true, lang })
+      const msg = unsure('unlegible', lang)
+      speak(msg, { interrupt: true, lang })
+      return { ok: false, text: msg, reason: 'unlegible' }
     } else {
-      speak(`${langStrings.readOffline} ${ocrText}`, { interrupt: true, lang })
+      const msg = `${langStrings.readOffline} ${ocrText}`
+      speak(msg, { interrupt: true, lang })
+      return { ok: true, text: msg }
     }
-    return
   }
 
   // 5. Online Gemini Vision via proxy
@@ -102,7 +113,7 @@ export async function readText(
     if (!response.ok) {
       if (response.status === 429) {
         speak(langStrings.rateLimited, { interrupt: true, lang })
-        return
+        return { ok: false, text: langStrings.rateLimited, reason: 'rate_limited' }
       }
       throw new Error(`HTTP ${response.status}`)
     }
@@ -118,8 +129,9 @@ export async function readText(
         timestamp: new Date().toISOString(),
         details: 'unlegible',
       })
-      speak(langStrings.readUnlegible, { interrupt: true, lang })
-      return
+      const msg = unsure('unlegible', lang)
+      speak(msg, { interrupt: true, lang })
+      return { ok: false, text: msg, reason: 'unlegible' }
     }
 
     let speechText = data.text
@@ -141,6 +153,7 @@ export async function readText(
     })
 
     speak(speechText, { interrupt: true, lang })
+    return { ok: true, text: speechText }
   } catch (err: unknown) {
     console.warn('Gemini proxy call failed, falling back to offline OCR:', err)
 
@@ -157,9 +170,13 @@ export async function readText(
     })
 
     if (!ocrText) {
-      speak(langStrings.readUnlegible, { interrupt: true, lang })
+      const msg = unsure('unlegible', lang)
+      speak(msg, { interrupt: true, lang })
+      return { ok: false, text: msg, reason: 'unlegible' }
     } else {
-      speak(`${langStrings.readOffline} ${ocrText}`, { interrupt: true, lang })
+      const msg = `${langStrings.readOffline} ${ocrText}`
+      speak(msg, { interrupt: true, lang })
+      return { ok: true, text: msg }
     }
   }
 }

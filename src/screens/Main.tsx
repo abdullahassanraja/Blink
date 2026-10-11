@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { getStrings } from '../config/strings'
 import { ModeTile } from '../ui/ModeTile'
 import { Caption } from '../ui/Caption'
 import { Sheet } from '../ui/Sheet'
 import { Button } from '../ui/Button'
 import { speak, stopSpeaking } from '../speech/speak'
+import { playChime } from '../speech/sound'
 import { CameraStatus } from '../camera/useCamera'
 import { readText } from '../modes/readText'
 import { describeScene } from '../modes/describe'
@@ -20,6 +21,14 @@ import {
   onMoneyDebugUpdate,
   MoneyDebugData,
 } from '../modes/money'
+import {
+  startListening,
+  stopListening,
+  onListeningChange,
+  isSpeechRecognitionSupported,
+  CommandMatch,
+} from '../speech/listen'
+import { isRescanEligible } from '../core/confidence'
 
 export interface MainProps {
   videoRef: React.RefObject<HTMLVideoElement>
@@ -46,28 +55,62 @@ export const Main: React.FC<MainProps> = ({
   const lastTapRef = useRef(0)
   const strings = getStrings('en')
 
+  // Voice Assistant & Auto-Rescan State
+  const hasGreetedRef = useRef(false)
+  const lastSpokenRef = useRef<string>('')
+  const rescanTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const rescanIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const [rescanCountdown, setRescanCountdown] = useState<number | null>(null)
+  const [isAssistantListening, setIsAssistantListening] = useState(false)
+  const speechSupported = typeof window !== 'undefined' && isSpeechRecognitionSupported()
+
+  const cancelRescan = useCallback(() => {
+    if (rescanTimerRef.current) {
+      clearTimeout(rescanTimerRef.current)
+      rescanTimerRef.current = null
+    }
+    if (rescanIntervalRef.current) {
+      clearInterval(rescanIntervalRef.current)
+      rescanIntervalRef.current = null
+    }
+    setRescanCountdown(null)
+  }, [])
+
   useEffect(() => {
     const unsubDetector = subscribeDetectorStats(setDetectorStats)
     const unsubMoney = isDebugUrl ? onMoneyDebugUpdate(setMoneyDebugData) : () => {}
+    const unsubListen = onListeningChange(setIsAssistantListening)
+
     return () => {
       unsubDetector()
       unsubMoney()
+      unsubListen()
       stopObstacleDetection()
       stopMoneyScan()
+      stopListening()
+      cancelRescan()
     }
-  }, [isDebugUrl])
+  }, [isDebugUrl, cancelRescan])
 
   const handleRead = async () => {
+    cancelRescan()
     stopMoneyScan()
     if (isAlertActive) {
       stopObstacleDetection()
       setIsAlertActive(false)
     }
     setActiveMode('read')
-    await readText(videoRef.current)
+    const result = await readText(videoRef.current)
+    if (result) {
+      lastSpokenRef.current = result.text
+      if (!result.ok && isRescanEligible(result.reason)) {
+        scheduleRescan('read')
+      }
+    }
   }
 
   const handleDescribe = async () => {
+    cancelRescan()
     stopMoneyScan()
     if (isAlertActive) {
       stopObstacleDetection()
@@ -78,6 +121,7 @@ export const Main: React.FC<MainProps> = ({
   }
 
   const handleToggleAlert = async () => {
+    cancelRescan()
     stopMoneyScan()
     if (isAlertActive) {
       stopObstacleDetection()
@@ -96,13 +140,124 @@ export const Main: React.FC<MainProps> = ({
   }
 
   const handleMoney = async () => {
+    cancelRescan()
     if (isAlertActive) {
       stopObstacleDetection()
       setIsAlertActive(false)
     }
     setActiveMode('money')
-    await identifyMoney(videoRef.current, { lang: 'en' })
+    const result = await identifyMoney(videoRef.current, { lang: 'en' })
+    if (result) {
+      lastSpokenRef.current = result.spokenText
+      if (!result.ok && isRescanEligible(result.reason)) {
+        scheduleRescan('money')
+      }
+    }
   }
+
+  const scheduleRescan = (mode: 'read' | 'money') => {
+    cancelRescan()
+    setRescanCountdown(4)
+
+    let remaining = 4
+    rescanIntervalRef.current = setInterval(() => {
+      remaining -= 1
+      if (remaining > 0) {
+        setRescanCountdown(remaining)
+      } else {
+        if (rescanIntervalRef.current) {
+          clearInterval(rescanIntervalRef.current)
+          rescanIntervalRef.current = null
+        }
+      }
+    }, 1000)
+
+    rescanTimerRef.current = setTimeout(async () => {
+      cancelRescan()
+      playChime(587.33, 0.14)
+      await speak(strings.assistantRescanningNow, { interrupt: true })
+      if (mode === 'read') {
+        await handleRead()
+      } else if (mode === 'money') {
+        await handleMoney()
+      }
+    }, 4000)
+  }
+
+  const promptAssistantToListen = () => {
+    if (!speechSupported) return
+    cancelRescan()
+    playChime(659.25, 0.15)
+    startListening({
+      lang: 'en-US',
+      onResult: (match, raw) => {
+        handleVoiceCommand(match, raw)
+      },
+    })
+  }
+
+  const handleVoiceCommand = async (match: CommandMatch | null, _rawTranscript: string) => {
+    cancelRescan()
+    if (!match) {
+      await speak(strings.commandNotUnderstood, { interrupt: true })
+      promptAssistantToListen()
+      return
+    }
+
+    const { command } = match
+    switch (command) {
+      case 'read':
+        await speak(strings.assistantOpeningRead, { interrupt: true })
+        await handleRead()
+        break
+      case 'describe':
+        await speak(strings.assistantOpeningDescribe, { interrupt: true })
+        await handleDescribe()
+        break
+      case 'money':
+        await speak(strings.assistantOpeningMoney, { interrupt: true })
+        await handleMoney()
+        break
+      case 'alert':
+        await handleToggleAlert()
+        break
+      case 'repeat':
+        if (lastSpokenRef.current) {
+          await speak(lastSpokenRef.current, { interrupt: true })
+        } else {
+          await speak(strings.assistantRepeatNone, { interrupt: true })
+        }
+        break
+      case 'help':
+        await speak(strings.assistantGreeting, { interrupt: true })
+        promptAssistantToListen()
+        break
+      case 'stop':
+        stopSpeaking()
+        stopMoneyScan()
+        if (isAlertActive) {
+          stopObstacleDetection()
+          setIsAlertActive(false)
+        }
+        setActiveMode(null)
+        await speak(strings.assistantStopped, { interrupt: true })
+        break
+    }
+  }
+
+  // Assistant conversational greeting when camera initializes
+  useEffect(() => {
+    if (cameraStatus === 'ready' && !hasGreetedRef.current) {
+      hasGreetedRef.current = true
+      const runGreeting = async () => {
+        await speak(strings.assistantGreeting, { interrupt: true })
+        if (speechSupported) {
+          promptAssistantToListen()
+        }
+      }
+      runGreeting()
+    }
+  }, [cameraStatus, speechSupported])
 
   const handleStatusBadgeTap = () => {
     const now = Date.now()
@@ -116,6 +271,20 @@ export const Main: React.FC<MainProps> = ({
       tapCountRef.current = 1
     }
     lastTapRef.current = now
+  }
+
+  const handleBack = () => {
+    cancelRescan()
+    stopListening()
+    stopMoneyScan()
+    stopObstacleDetection()
+    onBackToWelcome()
+  }
+
+  const handleOpenModesScreen = () => {
+    cancelRescan()
+    stopListening()
+    onOpenModes()
   }
 
 
@@ -225,7 +394,7 @@ export const Main: React.FC<MainProps> = ({
         {/* Back / Home circle button */}
         <Button
           variant="circle"
-          onClick={onBackToWelcome}
+          onClick={handleBack}
           aria-label="Back to welcome screen"
           style={{
             background: 'rgba(20, 35, 30, 0.65)',
@@ -406,7 +575,7 @@ export const Main: React.FC<MainProps> = ({
         <Button
           id="btn-open-modes"
           variant="circle"
-          onClick={onOpenModes}
+          onClick={handleOpenModesScreen}
           aria-label="View all modes and features"
           style={{
             background: 'rgba(20, 35, 30, 0.65)',
@@ -422,6 +591,80 @@ export const Main: React.FC<MainProps> = ({
           </svg>
         </Button>
       </header>
+
+      {/* Floating 4-Second Auto-Rescan Banner */}
+      {rescanCountdown !== null && (
+        <div
+          onClick={cancelRescan}
+          role="status"
+          aria-live="polite"
+          title="Click to cancel rescan"
+          style={{
+            position: 'absolute',
+            top: '76px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 25,
+            background: 'rgba(237, 241, 123, 0.96)',
+            color: '#14231E',
+            padding: '8px 18px',
+            borderRadius: 'var(--radius-pill)',
+            fontWeight: 700,
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ fontSize: '15px' }}>🔄</span>
+          <span>Rescanning in {rescanCountdown}s (Tap to cancel)</span>
+        </div>
+      )}
+
+      {/* Floating Assistant Listening Banner */}
+      {isAssistantListening && rescanCountdown === null && (
+        <div
+          onClick={() => stopListening()}
+          role="status"
+          aria-live="assertive"
+          title="Click to stop listening"
+          style={{
+            position: 'absolute',
+            top: '76px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 25,
+            background: 'rgba(20, 35, 30, 0.95)',
+            border: '1.5px solid var(--yellow)',
+            color: 'var(--yellow)',
+            padding: '8px 20px',
+            borderRadius: 'var(--radius-pill)',
+            fontWeight: 700,
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(237, 241, 123, 0.25)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              background: '#EF4444',
+              boxShadow: '0 0 8px #EF4444',
+            }}
+          />
+          <span>Listening... Say Read, Describe, Money, or Alert</span>
+        </div>
+      )}
 
       {/* Bottom Sheet with Live Caption and 2x2 Mode Grid */}
       <Sheet style={{ zIndex: 10, paddingBottom: '16px' }}>
@@ -541,7 +784,7 @@ export const Main: React.FC<MainProps> = ({
 
           {/* Modes Timeline Tab */}
           <button
-            onClick={onOpenModes}
+            onClick={handleOpenModesScreen}
             aria-label="Open modes timeline"
             style={{
               flex: 1,
@@ -563,6 +806,43 @@ export const Main: React.FC<MainProps> = ({
             <span style={{ fontSize: '16px', lineHeight: 1 }}>📋</span>
             <span style={{ fontSize: '11px', fontWeight: 500 }}>Modes</span>
           </button>
+
+          {/* Talk / Voice Assistant Tab */}
+          {speechSupported && (
+            <button
+              onClick={() => {
+                cancelRescan()
+                if (isAssistantListening) {
+                  stopListening()
+                } else {
+                  promptAssistantToListen()
+                }
+              }}
+              aria-label={isAssistantListening ? 'Stop voice listening' : 'Talk to voice assistant'}
+              style={{
+                flex: 1,
+                height: '46px',
+                border: 'none',
+                borderRadius: '999px',
+                background: isAssistantListening ? 'rgba(237, 241, 123, 0.3)' : 'transparent',
+                borderColor: isAssistantListening ? 'var(--yellow)' : 'transparent',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                color: isAssistantListening ? 'var(--yellow)' : 'rgba(255, 255, 255, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAssistantListening ? '🎙️' : '🎤'}</span>
+              <span style={{ fontSize: '11px', fontWeight: 600 }}>{isAssistantListening ? 'Listening' : 'Talk'}</span>
+            </button>
+          )}
 
           {/* Obstacle Alert Tab */}
           <button
@@ -594,7 +874,13 @@ export const Main: React.FC<MainProps> = ({
 
           {/* Spoken Help Tab */}
           <button
-            onClick={() => speak(strings.helpText, { interrupt: true })}
+            onClick={() => {
+              cancelRescan()
+              speak(strings.assistantGreeting, { interrupt: true })
+              if (speechSupported) {
+                promptAssistantToListen()
+              }
+            }}
             aria-label="Spoken help"
             style={{
               flex: 1,
