@@ -29,6 +29,7 @@ import {
   CommandMatch,
 } from '../speech/listen'
 import { isRescanEligible } from '../core/confidence'
+import { askAssistant } from '../modes/assistant'
 
 export interface MainProps {
   videoRef: React.RefObject<HTMLVideoElement>
@@ -196,9 +197,25 @@ export const Main: React.FC<MainProps> = ({
     })
   }
 
-  const handleVoiceCommand = async (match: CommandMatch | null, _rawTranscript: string) => {
+  const handleVoiceCommand = async (match: CommandMatch | null, rawTranscript: string) => {
     cancelRescan()
     if (!match) {
+      const cleanPrompt = rawTranscript ? rawTranscript.trim() : ''
+      if (cleanPrompt.length > 1) {
+        // Free-form voice LLM visual query with camera view
+        stopMoneyScan()
+        if (isAlertActive) {
+          stopObstacleDetection()
+          setIsAlertActive(false)
+        }
+        setActiveMode('assistant')
+        const result = await askAssistant(videoRef.current, cleanPrompt, { lang: 'en' })
+        if (result && result.text) {
+          lastSpokenRef.current = result.text
+        }
+        return
+      }
+
       await speak(strings.commandNotUnderstood, { interrupt: true })
       promptAssistantToListen()
       return

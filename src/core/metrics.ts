@@ -7,7 +7,7 @@
  */
 
 export interface MetricEvent {
-  mode: 'read' | 'describe' | 'alert' | 'money'
+  mode: 'read' | 'describe' | 'alert' | 'money' | 'assistant'
   durationMs: number
   source: 'gemini' | 'cache' | 'ocr_fallback' | 'offline' | 'money_service'
   timestamp: string

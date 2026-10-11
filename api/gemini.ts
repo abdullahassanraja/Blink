@@ -12,7 +12,8 @@
 
 export interface GeminiProxyRequest {
   image: string // base64 JPEG without data URL prefix
-  task: 'read' | 'describe'
+  task: 'read' | 'describe' | 'ask'
+  prompt?: string
   lang?: 'en' | 'ur'
 }
 
@@ -23,6 +24,11 @@ export interface ReadResponse {
 }
 
 export interface DescribeResponse {
+  text: string
+  confident: boolean
+}
+
+export interface AskResponse {
   text: string
   confident: boolean
 }
@@ -78,7 +84,37 @@ export async function handleGeminiRequest(body: GeminiProxyRequest, clientIp = '
   let systemInstruction = ''
   let responseSchema: Record<string, unknown> = {}
 
-  if (task === 'read') {
+  if (task === 'ask') {
+    const question = body.prompt?.trim() || 'Describe what you see in front of the camera.'
+    systemInstruction = isUrdu
+      ? `You are Blink, a helpful voice assistant for a blind or visually impaired person who speaks Urdu.
+Look at the camera image and answer the user's question directly, concisely, and kindly in Urdu.
+User question: "${question}"
+Rules:
+- Keep the answer under 25 words. Plain spoken Urdu sentences only.
+- Prioritize people, hazards, obstacles, and the exact visual object or detail asked by the user.
+- If unsure or the question cannot be answered from the image, say so honestly.
+- Return JSON: {"text": string, "confident": boolean}.
+- Never use markdown, asterisks, bullet points, or em dashes.`
+      : `You are Blink, a helpful voice assistant for a blind or visually impaired person.
+Look at the camera image and answer the user's question directly, concisely, and kindly in English.
+User question: "${question}"
+Rules:
+- Keep the answer under 25 words. Plain spoken English sentences only.
+- Prioritize people, hazards, obstacles, and the exact visual object or detail asked by the user.
+- If unsure or the question cannot be answered from the image, say so honestly.
+- Return JSON: {"text": string, "confident": boolean}.
+- Never use markdown, asterisks, bullet points, or em dashes.`
+
+    responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        text: { type: 'STRING' },
+        confident: { type: 'BOOLEAN' },
+      },
+      required: ['text', 'confident'],
+    }
+  } else if (task === 'read') {
     systemInstruction = isUrdu
       ? `You help a blind person who speaks Urdu. Read the main text in this image aloud-ready in Urdu.
 If it is a medicine package: say the medicine name first, then strength, then directions only if clearly visible. Never advise dosage.
@@ -125,23 +161,28 @@ Keep text under 40 words. Plain spoken sentences without em dashes.`
     modelName,
   ].filter((v, idx, arr) => arr.indexOf(v) === idx)
 
+  const contentParts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: systemInstruction },
+  ]
+  if (task === 'ask' && body.prompt) {
+    contentParts.push({ text: `User asked: "${body.prompt.trim()}"` })
+  }
+  contentParts.push({
+    inlineData: {
+      mimeType: 'image/jpeg',
+      data: image,
+    },
+  })
+
   const payload = {
     contents: [
       {
-        parts: [
-          { text: systemInstruction },
-          {
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: image,
-            },
-          },
-        ],
+        parts: contentParts,
       },
     ],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: task === 'describe' ? 60 : 90,
+      maxOutputTokens: task === 'describe' ? 60 : task === 'ask' ? 80 : 90,
       responseMimeType: 'application/json',
       responseSchema,
     },
