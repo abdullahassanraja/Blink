@@ -39,6 +39,7 @@ export default function App() {
           videoRef={camera.videoRef}
           cameraStatus={camera.status}
           cameraErrorMessage={camera.errorMessage}
+          onStartCamera={camera.start}
           onOpenModes={handleOpenModes}
           onBackToWelcome={handleBackToWelcome}
         />

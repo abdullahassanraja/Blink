@@ -47,8 +47,21 @@ export function useCamera(): UseCameraResult {
   }, [])
 
   const start = useCallback(async (): Promise<boolean> => {
-    // If already active, return true
-    if (streamRef.current && status === 'ready') {
+    // If stream already exists, reconnect to video element and ensure playback
+    if (streamRef.current) {
+      if (videoRef.current) {
+        if (videoRef.current.srcObject !== streamRef.current) {
+          videoRef.current.srcObject = streamRef.current
+        }
+        videoRef.current.setAttribute('playsinline', 'true')
+        try {
+          await videoRef.current.play()
+        } catch (playErr) {
+          console.warn('Video play deferred or interrupted:', playErr)
+        }
+      }
+      setStatus('ready')
+      setErrorMessage(null)
       return true
     }
 

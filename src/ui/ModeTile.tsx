@@ -90,10 +90,10 @@ export const ModeTile: React.FC<ModeTileProps> = ({
           appearance: 'none',
           position: 'relative',
           width: '100%',
-          minHeight: '220px',
-          aspectRatio: '1 / 1.16',
-          padding: '16px 14px',
-          borderRadius: '28px',
+          minHeight: '200px',
+          aspectRatio: '1 / 1.14',
+          padding: '14px 12px',
+          borderRadius: '26px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -135,7 +135,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
               inset: 0,
               zIndex: 0,
               overflow: 'hidden',
-              borderRadius: '26px',
+              borderRadius: '24px',
             }}
           >
             <img
@@ -156,8 +156,8 @@ export const ModeTile: React.FC<ModeTileProps> = ({
                 position: 'absolute',
                 inset: 0,
                 background: isActive
-                  ? 'linear-gradient(180deg, rgba(14, 25, 20, 0.45) 0%, rgba(14, 25, 20, 0.1) 45%, rgba(10, 18, 14, 0.78) 100%)'
-                  : 'linear-gradient(180deg, rgba(10, 18, 15, 0.38) 0%, rgba(10, 18, 15, 0.06) 45%, rgba(8, 16, 13, 0.72) 100%)',
+                  ? 'linear-gradient(180deg, rgba(14, 25, 20, 0.48) 0%, rgba(14, 25, 20, 0.08) 45%, rgba(10, 18, 14, 0.8) 100%)'
+                  : 'linear-gradient(180deg, rgba(10, 18, 15, 0.4) 0%, rgba(10, 18, 15, 0.05) 45%, rgba(8, 16, 13, 0.74) 100%)',
               }}
             />
           </div>
@@ -171,7 +171,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
               inset: 0,
               zIndex: 1,
               pointerEvents: 'none',
-              borderRadius: '26px',
+              borderRadius: '24px',
               background: `radial-gradient(circle 140px at ${sheen.x}% ${sheen.y}%, rgba(255, 255, 255, 0.22), transparent 75%)`,
             }}
           />
@@ -186,18 +186,22 @@ export const ModeTile: React.FC<ModeTileProps> = ({
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             width: '100%',
-            gap: '8px',
+            gap: '6px',
           }}
         >
           {/* Top-Left Title */}
           <div
             style={{
-              fontSize: '24px',
+              fontSize: 'clamp(17px, 4.4vw, 22px)',
               fontWeight: 700,
               lineHeight: 1.15,
-              letterSpacing: '-0.025em',
+              letterSpacing: '-0.02em',
               color: '#FFFFFF',
-              textShadow: '0 2px 10px rgba(0, 0, 0, 0.55)',
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.65)',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              minWidth: 0,
+              flex: 1,
             }}
           >
             {title}
@@ -206,8 +210,10 @@ export const ModeTile: React.FC<ModeTileProps> = ({
           {/* Top-Right Frosted Circle Button (matching the frosted edit circle in reference) */}
           <div
             style={{
-              width: '38px',
-              height: '38px',
+              width: '32px',
+              height: '32px',
+              minWidth: '32px',
+              minHeight: '32px',
               borderRadius: '50%',
               background: isActive
                 ? 'var(--yellow)'
@@ -220,9 +226,9 @@ export const ModeTile: React.FC<ModeTileProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
+              fontSize: '15px',
               color: isActive ? 'var(--ink)' : '#FFFFFF',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.22)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.22)',
               flexShrink: 0,
               transition: 'all 0.2s ease',
             }}
@@ -239,9 +245,11 @@ export const ModeTile: React.FC<ModeTileProps> = ({
             marginTop: 'auto',
             display: 'flex',
             flexWrap: 'wrap',
-            gap: '6px',
+            gap: '4px',
             alignItems: 'center',
             width: '100%',
+            minWidth: 0,
+            overflow: 'hidden',
           }}
         >
           {resolvedTags.map((t, idx) => {
@@ -251,7 +259,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
               <span
                 key={idx}
                 style={{
-                  padding: '4px 10px',
+                  padding: '3px 8px',
                   borderRadius: '999px',
                   background:
                     isActive && isLast
@@ -265,13 +273,16 @@ export const ModeTile: React.FC<ModeTileProps> = ({
                     isActive && isLast
                       ? '1px solid var(--yellow)'
                       : '1px solid rgba(255, 255, 255, 0.42)',
-                  fontSize: '11px',
+                  fontSize: 'clamp(9.5px, 2.5vw, 11px)',
                   fontWeight: 600,
                   letterSpacing: '-0.01em',
                   color: isActive && isLast ? 'var(--ink)' : '#FFFFFF',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                   whiteSpace: 'nowrap',
-                  lineHeight: 1.35,
+                  lineHeight: 1.25,
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {t}

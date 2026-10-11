@@ -119,9 +119,9 @@ export const Button: React.FC<ButtonProps> = ({
         className={`btn-glass-slider ${className}`}
         style={{
           ...baseStyles,
-          minHeight: '64px',
-          height: '64px',
-          padding: '4px 6px 4px 22px',
+          minHeight: '60px',
+          height: '60px',
+          padding: '4px 6px 4px clamp(14px, 4vw, 22px)',
           background: 'rgba(38, 44, 38, 0.65)',
           backdropFilter: 'blur(30px) saturate(180%)',
           WebkitBackdropFilter: 'blur(30px) saturate(180%)',
@@ -136,29 +136,33 @@ export const Button: React.FC<ButtonProps> = ({
           userSelect: 'none',
           WebkitTapHighlightColor: 'transparent',
           touchAction: 'manipulation',
+          maxWidth: '100%',
         }}
         {...rest}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '18px', pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2.5vw, 18px)', pointerEvents: 'none', minWidth: 0, overflow: 'hidden' }}>
           <span
             style={{
               color: 'rgba(255, 255, 255, 0.72)',
-              fontSize: '18px',
+              fontSize: 'clamp(15px, 3.8vw, 18px)',
               fontWeight: 400,
-              letterSpacing: '3px',
+              letterSpacing: '2px',
               userSelect: 'none',
               lineHeight: 1,
+              flexShrink: 0,
             }}
           >
             ›››
           </span>
           <span
             style={{
-              fontSize: '18px',
+              fontSize: 'clamp(15px, 3.8vw, 18px)',
               fontWeight: 500,
               color: '#FFFFFF',
               letterSpacing: '-0.01em',
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {children || 'Get Started'}

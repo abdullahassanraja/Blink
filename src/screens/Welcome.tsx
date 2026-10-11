@@ -144,11 +144,11 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
         >
           <h1
             style={{
-              fontSize: '56px',
+              fontSize: 'clamp(40px, 12vw, 56px)',
               fontWeight: 800,
               color: '#FFFFFF',
               letterSpacing: '-0.035em',
-              margin: '0 0 8px 0',
+              margin: '0 0 6px 0',
               textAlign: 'center',
               textTransform: 'lowercase',
               lineHeight: 1,
@@ -160,7 +160,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
 
           <p
             style={{
-              fontSize: '19px',
+              fontSize: 'clamp(16px, 4.5vw, 19px)',
               fontWeight: 500,
               color: 'rgba(255, 255, 255, 0.9)',
               margin: 0,
@@ -179,10 +179,10 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
           width: '100%',
           maxWidth: '480px',
           margin: '0 auto',
-          padding: '0 20px 28px 20px',
+          padding: '0 16px 24px 16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
           position: 'relative',
           zIndex: 10,
         }}
@@ -192,7 +192,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '10px',
+            gap: '8px',
           }}
         >
           <button
@@ -202,7 +202,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
             style={{
               height: '44px',
               minHeight: '44px',
-              padding: '0 12px',
+              padding: '0 8px',
               borderRadius: 'var(--radius-pill)',
               background: '#FFFFFF',
               color: 'var(--ink)',
@@ -211,18 +211,20 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              fontSize: '13px',
+              gap: '4px',
+              fontSize: 'clamp(11.5px, 3.2vw, 13px)',
               fontWeight: 600,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontFamily: 'var(--font)',
               userSelect: 'none',
               WebkitTapHighlightColor: 'transparent',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            <span style={{ fontSize: '15px', flexShrink: 0 }}>{voiceEnabled ? '🔊' : '🔇'}</span>
-            <span style={{ whiteSpace: 'nowrap' }}>{voiceEnabled ? strings.voiceOn : 'Voice muted'}</span>
+            <span style={{ fontSize: '14px', flexShrink: 0 }}>{voiceEnabled ? '🔊' : '🔇'}</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{voiceEnabled ? strings.voiceOn : 'Voice muted'}</span>
           </button>
 
           <button
@@ -232,7 +234,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
             style={{
               height: '44px',
               minHeight: '44px',
-              padding: '0 12px',
+              padding: '0 8px',
               borderRadius: 'var(--radius-pill)',
               background: '#FFFFFF',
               color: 'var(--ink)',
@@ -241,18 +243,20 @@ export const Welcome: React.FC<WelcomeProps> = ({ onStart }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              fontSize: '13px',
+              gap: '4px',
+              fontSize: 'clamp(11.5px, 3.2vw, 13px)',
               fontWeight: 600,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontFamily: 'var(--font)',
               userSelect: 'none',
               WebkitTapHighlightColor: 'transparent',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            <span style={{ fontSize: '15px', flexShrink: 0 }}>🌐</span>
-            <span style={{ whiteSpace: 'nowrap' }}>{strings.languageLabel}</span>
+            <span style={{ fontSize: '14px', flexShrink: 0 }}>🌐</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{strings.languageLabel}</span>
           </button>
         </div>
 

@@ -35,6 +35,7 @@ export interface MainProps {
   videoRef: React.RefObject<HTMLVideoElement>
   cameraStatus: CameraStatus
   cameraErrorMessage: string | null
+  onStartCamera?: () => Promise<boolean>
   onOpenModes: () => void
   onBackToWelcome: () => void
 }
@@ -43,6 +44,7 @@ export const Main: React.FC<MainProps> = ({
   videoRef,
   cameraStatus,
   cameraErrorMessage,
+  onStartCamera,
   onOpenModes,
   onBackToWelcome,
 }) => {
@@ -64,6 +66,13 @@ export const Main: React.FC<MainProps> = ({
   const [rescanCountdown, setRescanCountdown] = useState<number | null>(null)
   const [isAssistantListening, setIsAssistantListening] = useState(false)
   const speechSupported = typeof window !== 'undefined' && isSpeechRecognitionSupported()
+
+  // Ensure camera stream is attached to video element if ready
+  useEffect(() => {
+    if (videoRef.current && cameraStatus === 'ready' && !videoRef.current.srcObject && onStartCamera) {
+      onStartCamera()
+    }
+  }, [cameraStatus, onStartCamera, videoRef])
 
   const cancelRescan = useCallback(() => {
     if (rescanTimerRef.current) {
@@ -101,6 +110,7 @@ export const Main: React.FC<MainProps> = ({
       setIsAlertActive(false)
     }
     setActiveMode('read')
+    await onStartCamera?.()
     playChime(587.33, 0.12)
     await speak(strings.assistantOpeningRead, { interrupt: true })
     const result = await readText(videoRef.current)
@@ -120,6 +130,7 @@ export const Main: React.FC<MainProps> = ({
       setIsAlertActive(false)
     }
     setActiveMode('describe')
+    await onStartCamera?.()
     playChime(659.25, 0.12)
     await speak(strings.assistantOpeningDescribe, { interrupt: true })
     await describeScene(videoRef.current)
@@ -137,6 +148,7 @@ export const Main: React.FC<MainProps> = ({
     } else {
       setActiveMode('alert')
       setIsAlertActive(true)
+      await onStartCamera?.()
       speak(strings.alertOn, { interrupt: true })
       if (videoRef.current) {
         await startObstacleDetection(videoRef.current)
@@ -151,6 +163,7 @@ export const Main: React.FC<MainProps> = ({
       setIsAlertActive(false)
     }
     setActiveMode('money')
+    await onStartCamera?.()
     playChime(587.33, 0.12)
     await speak(strings.assistantOpeningMoney, { interrupt: true })
     const result = await identifyMoney(videoRef.current, { lang: 'en' })
@@ -715,25 +728,28 @@ export const Main: React.FC<MainProps> = ({
           title="Click to cancel rescan"
           style={{
             position: 'absolute',
-            top: '76px',
+            top: '74px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 25,
+            maxWidth: 'calc(100% - 24px)',
+            width: 'max-content',
             background: 'rgba(237, 241, 123, 0.96)',
             color: '#14231E',
-            padding: '8px 18px',
+            padding: '7px 14px',
             borderRadius: 'var(--radius-pill)',
             fontWeight: 700,
-            fontSize: '13px',
+            fontSize: 'clamp(11px, 3.2vw, 13px)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            justifyContent: 'center',
+            gap: '6px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ fontSize: '15px' }}>🔄</span>
+          <span style={{ fontSize: '14px', flexShrink: 0 }}>🔄</span>
           <span>Rescanning in {rescanCountdown}s (Tap to cancel)</span>
         </div>
       )}
@@ -747,20 +763,23 @@ export const Main: React.FC<MainProps> = ({
           title="Click to stop listening"
           style={{
             position: 'absolute',
-            top: '76px',
+            top: '74px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 25,
+            maxWidth: 'calc(100% - 24px)',
+            width: 'max-content',
             background: 'rgba(20, 35, 30, 0.95)',
             border: '1.5px solid var(--yellow)',
             color: 'var(--yellow)',
-            padding: '8px 20px',
+            padding: '7px 14px',
             borderRadius: 'var(--radius-pill)',
             fontWeight: 700,
-            fontSize: '13px',
+            fontSize: 'clamp(11px, 3.2vw, 13px)',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            justifyContent: 'center',
+            gap: '8px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(237, 241, 123, 0.25)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -769,14 +788,15 @@ export const Main: React.FC<MainProps> = ({
           <span
             style={{
               display: 'inline-block',
-              width: '10px',
-              height: '10px',
+              width: '8px',
+              height: '8px',
               borderRadius: '50%',
               background: '#EF4444',
               boxShadow: '0 0 8px #EF4444',
+              flexShrink: 0,
             }}
           />
-          <span>Listening... Say Read, Describe, Money, or Alert</span>
+          <span>Listening... Say Read, Describe, Alert, or Money</span>
         </div>
       )}
 
@@ -785,15 +805,15 @@ export const Main: React.FC<MainProps> = ({
         <div
           style={{
             position: 'absolute',
-            bottom: '32px',
-            left: '20px',
-            right: '20px',
+            bottom: '24px',
+            left: '16px',
+            right: '16px',
             maxWidth: '460px',
             margin: '0 auto',
             zIndex: 20,
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '10px',
             alignItems: 'center',
           }}
         >
@@ -806,7 +826,7 @@ export const Main: React.FC<MainProps> = ({
             variant="glass-slider"
             fullWidth
             onClick={handleActiveAction}
-            aria-label={`Tap to ${activeMode === 'read' ? 'read text' : activeMode === 'describe' ? 'describe scene' : activeMode === 'money' ? 'scan money' : 'toggle alert'}`}
+            aria-label={`Tap to ${activeMode === 'read' ? 'read text' : activeMode === 'describe' ? 'describe scene' : activeMode === 'money' ? 'scan money' : activeMode === 'camera' ? 'view camera' : 'toggle alert'}`}
             style={{
               cursor: 'pointer',
               boxShadow: '0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
@@ -821,6 +841,8 @@ export const Main: React.FC<MainProps> = ({
                   ? '💵'
                   : activeMode === 'alert'
                   ? '🛡️'
+                  : activeMode === 'camera'
+                  ? '📷'
                   : '🎙️'}
               </span>
             }
@@ -839,9 +861,10 @@ export const Main: React.FC<MainProps> = ({
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              gap: '14px',
+              gap: '10px',
               marginTop: '4px',
-              paddingBottom: '76px', /* Ensures cards scroll completely clear of the floating dock */
+              paddingBottom: '74px', /* Ensures cards scroll completely clear of the floating dock */
+              width: '100%',
             }}
           >
             {/* Read Mode */}
@@ -849,7 +872,7 @@ export const Main: React.FC<MainProps> = ({
               id="read"
               title={strings.modeRead}
               icon="📖"
-              tags={['Instant OCR', 'Labels', 'Tap to Read']}
+              tags={['OCR', 'Labels', 'Read']}
               imageSrc="/cards/read.jpg"
               isActive={activeMode === 'read'}
               onClick={handleRead}
@@ -860,7 +883,7 @@ export const Main: React.FC<MainProps> = ({
               id="describe"
               title={strings.modeDescribe}
               icon="✨"
-              tags={['AI Vision', 'Scene', 'Tap to Scan']}
+              tags={['AI Vision', 'Scene', 'Describe']}
               imageSrc="/cards/describe.jpg"
               isActive={activeMode === 'describe'}
               onClick={handleDescribe}
@@ -871,7 +894,7 @@ export const Main: React.FC<MainProps> = ({
               id="alert"
               title={isAlertActive ? 'Stop Alert' : strings.modeAlert}
               icon={isAlertActive ? '🛑' : '🛡️'}
-              tags={['Safety Radar', 'Real-Time', isAlertActive ? 'Active' : 'Tap to Start']}
+              tags={['Radar', 'Safety', isAlertActive ? 'Active' : 'Alert']}
               imageSrc="/cards/alert.jpg"
               isActive={isAlertActive}
               onClick={handleToggleAlert}
@@ -882,7 +905,7 @@ export const Main: React.FC<MainProps> = ({
               id="money"
               title={strings.modeMoney}
               icon="💵"
-              tags={['Rupee Notes', 'Currency ID', activeMode === 'money' ? 'Scanning' : 'Scan Cash']}
+              tags={['Rupee', 'Notes', activeMode === 'money' ? 'Scanning' : 'Scan']}
               imageSrc="/cards/money.jpg"
               isActive={activeMode === 'money'}
               onClick={handleMoney}
@@ -899,28 +922,35 @@ export const Main: React.FC<MainProps> = ({
               marginTop: '-64px',
               maxWidth: '480px',
               margin: '-64px auto 6px auto',
-              width: 'calc(100% - 12px)',
+              width: 'calc(100% - 8px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '6px',
+              gap: '4px',
               background: 'rgba(38, 44, 38, 0.65)',
               backdropFilter: 'blur(30px) saturate(180%)',
               WebkitBackdropFilter: 'blur(30px) saturate(180%)',
               border: '1px solid rgba(255, 255, 255, 0.16)',
               borderRadius: '999px',
-              padding: '6px 8px',
+              padding: '4px 6px',
               boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.22)',
             }}
           >
-            {/* Camera Tab (Active) */}
+            {/* Camera Tab (Opens live camera viewfinder) */}
             <button
-              onClick={() => speak('Main camera view active.', { interrupt: true })}
-              aria-label="Camera active"
+              onClick={async () => {
+                cancelRescan()
+                setActiveMode('camera')
+                await onStartCamera?.()
+                speak('Main camera viewfinder active.', { interrupt: true })
+              }}
+              aria-label="Open camera viewfinder"
               style={{
                 flex: 1,
-                height: '48px',
-                border: '1px solid rgba(237, 241, 123, 0.55)',
+                height: '46px',
+                minWidth: 0,
+                padding: '2px 4px',
+                border: activeMode === 'camera' ? '1px solid rgba(237, 241, 123, 0.7)' : '1px solid rgba(237, 241, 123, 0.45)',
                 borderRadius: '999px',
                 background: 'rgba(237, 241, 123, 0.22)',
                 backdropFilter: 'blur(16px)',
@@ -931,7 +961,7 @@ export const Main: React.FC<MainProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '2px',
+                gap: '1px',
                 cursor: 'pointer',
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
@@ -939,8 +969,8 @@ export const Main: React.FC<MainProps> = ({
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>📷</span>
-              <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '-0.01em' }}>Camera</span>
+              <span style={{ fontSize: '15px', lineHeight: 1 }}>📷</span>
+              <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 600, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Camera</span>
             </button>
 
             {/* Modes Timeline Tab */}
@@ -949,7 +979,9 @@ export const Main: React.FC<MainProps> = ({
               aria-label="Open modes timeline"
               style={{
                 flex: 1,
-                height: '48px',
+                height: '46px',
+                minWidth: 0,
+                padding: '2px 4px',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '999px',
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -960,7 +992,7 @@ export const Main: React.FC<MainProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '2px',
+                gap: '1px',
                 cursor: 'pointer',
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
@@ -968,8 +1000,8 @@ export const Main: React.FC<MainProps> = ({
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>📋</span>
-              <span style={{ fontSize: '11px', fontWeight: 500 }}>Modes</span>
+              <span style={{ fontSize: '15px', lineHeight: 1 }}>📋</span>
+              <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 500, whiteSpace: 'nowrap' }}>Modes</span>
             </button>
 
             {/* Talk / Voice Assistant Tab */}
@@ -986,7 +1018,9 @@ export const Main: React.FC<MainProps> = ({
                 aria-label={isAssistantListening ? 'Stop voice listening' : 'Talk to voice assistant'}
                 style={{
                   flex: 1,
-                  height: '48px',
+                  height: '46px',
+                  minWidth: 0,
+                  padding: '2px 4px',
                   border: isAssistantListening
                     ? '1px solid var(--yellow)'
                     : '1px solid rgba(255, 255, 255, 0.08)',
@@ -1004,7 +1038,7 @@ export const Main: React.FC<MainProps> = ({
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '2px',
+                  gap: '1px',
                   cursor: 'pointer',
                   userSelect: 'none',
                   WebkitTapHighlightColor: 'transparent',
@@ -1012,8 +1046,8 @@ export const Main: React.FC<MainProps> = ({
                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
-                <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAssistantListening ? '🎙️' : '🎤'}</span>
-                <span style={{ fontSize: '11px', fontWeight: 600 }}>{isAssistantListening ? 'Listening' : 'Talk'}</span>
+                <span style={{ fontSize: '15px', lineHeight: 1 }}>{isAssistantListening ? '🎙️' : '🎤'}</span>
+                <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 600, whiteSpace: 'nowrap' }}>{isAssistantListening ? 'Listening' : 'Talk'}</span>
               </button>
             )}
 
@@ -1023,7 +1057,9 @@ export const Main: React.FC<MainProps> = ({
               aria-label={isAlertActive ? 'Stop obstacle alert' : 'Start obstacle alert'}
               style={{
                 flex: 1,
-                height: '48px',
+                height: '46px',
+                minWidth: 0,
+                padding: '2px 4px',
                 border: isAlertActive
                   ? '1px solid rgba(248, 113, 113, 0.65)'
                   : '1px solid rgba(255, 255, 255, 0.08)',
@@ -1041,7 +1077,7 @@ export const Main: React.FC<MainProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '2px',
+                gap: '1px',
                 cursor: 'pointer',
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
@@ -1049,8 +1085,8 @@ export const Main: React.FC<MainProps> = ({
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAlertActive ? '🛑' : '🛡️'}</span>
-              <span style={{ fontSize: '11px', fontWeight: 500 }}>{isAlertActive ? 'Alerting' : 'Alert'}</span>
+              <span style={{ fontSize: '15px', lineHeight: 1 }}>{isAlertActive ? '🛑' : '🛡️'}</span>
+              <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 500, whiteSpace: 'nowrap' }}>{isAlertActive ? 'Alerting' : 'Alert'}</span>
             </button>
 
             {/* Spoken Help Tab */}
@@ -1065,7 +1101,9 @@ export const Main: React.FC<MainProps> = ({
               aria-label="Spoken help"
               style={{
                 flex: 1,
-                height: '48px',
+                height: '46px',
+                minWidth: 0,
+                padding: '2px 4px',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '999px',
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -1076,7 +1114,7 @@ export const Main: React.FC<MainProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '2px',
+                gap: '1px',
                 cursor: 'pointer',
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
@@ -1084,8 +1122,8 @@ export const Main: React.FC<MainProps> = ({
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>❓</span>
-              <span style={{ fontSize: '11px', fontWeight: 500 }}>Help</span>
+              <span style={{ fontSize: '15px', lineHeight: 1 }}>❓</span>
+              <span style={{ fontSize: 'clamp(9.5px, 2.6vw, 11px)', fontWeight: 500, whiteSpace: 'nowrap' }}>Help</span>
             </button>
           </nav>
         </Sheet>
