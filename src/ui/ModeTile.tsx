@@ -3,9 +3,10 @@ import React, { useState, useRef } from 'react'
 export interface ModeTileProps {
   id: string
   title: string
-  subtitle: string
+  subtitle?: string
   icon: React.ReactNode
   tag?: string
+  tags?: string[]
   badgeText?: string
   imageSrc?: string
   isActive?: boolean
@@ -19,6 +20,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
   subtitle,
   icon,
   tag,
+  tags,
   badgeText,
   imageSrc,
   isActive = false,
@@ -38,8 +40,8 @@ export const ModeTile: React.FC<ModeTileProps> = ({
     const centerX = rect.width / 2
     const centerY = rect.height / 2
 
-    // Leaning physics: card leans toward the mouse cursor position
-    const maxTilt = 10
+    // Smooth leaning physics: card leans toward the mouse cursor
+    const maxTilt = 8
     const tiltX = -((y - centerY) / centerY) * maxTilt
     const tiltY = ((x - centerX) / centerX) * maxTilt
 
@@ -59,6 +61,16 @@ export const ModeTile: React.FC<ModeTileProps> = ({
     setTilt({ x: 0, y: 0 })
   }
 
+  // Derive pills matching reference: tags prop, or fallback to [tag, subtitle, badgeText]
+  const resolvedTags: string[] =
+    tags && tags.length > 0
+      ? tags
+      : ([
+          tag,
+          subtitle,
+          badgeText || (isActive ? 'Running' : 'Tap to Start'),
+        ].filter(Boolean) as string[])
+
   return (
     <div
       style={{
@@ -69,7 +81,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
       <button
         ref={cardRef}
         id={`mode-tile-${id}`}
-        aria-label={`${title}: ${subtitle}`}
+        aria-label={`${title}${subtitle ? `: ${subtitle}` : ''}`}
         onClick={onClick}
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
@@ -78,10 +90,10 @@ export const ModeTile: React.FC<ModeTileProps> = ({
           appearance: 'none',
           position: 'relative',
           width: '100%',
-          minHeight: '210px',
-          height: '100%',
+          minHeight: '220px',
+          aspectRatio: '1 / 1.16',
           padding: '16px 14px',
-          borderRadius: '26px',
+          borderRadius: '28px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -96,7 +108,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
             ? '2px solid var(--yellow)'
             : isHovered
             ? '1.5px solid rgba(255, 255, 255, 0.55)'
-            : '1.5px solid rgba(255, 255, 255, 0.28)',
+            : '1.5px solid rgba(255, 255, 255, 0.24)',
           background: 'rgba(20, 32, 26, 0.85)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -123,7 +135,7 @@ export const ModeTile: React.FC<ModeTileProps> = ({
               inset: 0,
               zIndex: 0,
               overflow: 'hidden',
-              borderRadius: '24px',
+              borderRadius: '26px',
             }}
           >
             <img
@@ -133,19 +145,19 @@ export const ModeTile: React.FC<ModeTileProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+                transform: isHovered ? 'scale(1.06)' : 'scale(1)',
                 transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                filter: 'brightness(0.92) contrast(1.06)',
+                filter: 'brightness(0.96) contrast(1.05)',
               }}
             />
-            {/* Cinematic frosted scrim overlay for readability */}
+            {/* Cinematic frosted scrim overlay for readability while keeping the clean studio photograph luminous */}
             <div
               style={{
                 position: 'absolute',
                 inset: 0,
                 background: isActive
-                  ? 'linear-gradient(180deg, rgba(14, 25, 20, 0.45) 0%, rgba(14, 25, 20, 0.72) 55%, rgba(10, 18, 14, 0.95) 100%)'
-                  : 'linear-gradient(180deg, rgba(12, 22, 18, 0.35) 0%, rgba(12, 22, 18, 0.65) 55%, rgba(8, 16, 13, 0.92) 100%)',
+                  ? 'linear-gradient(180deg, rgba(14, 25, 20, 0.45) 0%, rgba(14, 25, 20, 0.1) 45%, rgba(10, 18, 14, 0.78) 100%)'
+                  : 'linear-gradient(180deg, rgba(10, 18, 15, 0.38) 0%, rgba(10, 18, 15, 0.06) 45%, rgba(8, 16, 13, 0.72) 100%)',
               }}
             />
           </div>
@@ -159,138 +171,113 @@ export const ModeTile: React.FC<ModeTileProps> = ({
               inset: 0,
               zIndex: 1,
               pointerEvents: 'none',
-              borderRadius: '24px',
-              background: `radial-gradient(circle 140px at ${sheen.x}% ${sheen.y}%, rgba(255, 255, 255, 0.25), transparent 75%)`,
+              borderRadius: '26px',
+              background: `radial-gradient(circle 140px at ${sheen.x}% ${sheen.y}%, rgba(255, 255, 255, 0.22), transparent 75%)`,
             }}
           />
         )}
 
-        {/* Top Header Row: Category Tag Pill + Icon Badge */}
+        {/* Top Header Row: Title on Left, Frosted Circle Icon on Right (matching reference image) */}
         <div
           style={{
             position: 'relative',
             zIndex: 2,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
             width: '100%',
+            gap: '8px',
           }}
         >
-          {/* Frosted Glass Pill Tag (inspired by "Season Offer" in reference mockup) */}
-          <span
-            style={{
-              padding: '4px 10px',
-              borderRadius: '999px',
-              background: isActive
-                ? 'rgba(237, 241, 123, 0.28)'
-                : 'rgba(255, 255, 255, 0.22)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: isActive
-                ? '1px solid var(--yellow)'
-                : '1px solid rgba(255, 255, 255, 0.35)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: isActive ? 'var(--yellow)' : '#FFFFFF',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.18)',
-            }}
-          >
-            {tag || (isActive ? 'Active' : 'Mode')}
-          </span>
-
-          {/* Frosted Corner Icon Button */}
+          {/* Top-Left Title */}
           <div
             style={{
-              width: '36px',
-              height: '36px',
+              fontSize: '24px',
+              fontWeight: 700,
+              lineHeight: 1.15,
+              letterSpacing: '-0.025em',
+              color: '#FFFFFF',
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.55)',
+            }}
+          >
+            {title}
+          </div>
+
+          {/* Top-Right Frosted Circle Button (matching the frosted edit circle in reference) */}
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
               borderRadius: '50%',
               background: isActive
                 ? 'var(--yellow)'
-                : 'rgba(255, 255, 255, 0.22)',
+                : 'rgba(255, 255, 255, 0.24)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
               border: isActive
-                ? 'none'
-                : '1px solid rgba(255, 255, 255, 0.35)',
+                ? '1.5px solid var(--yellow)'
+                : '1.2px solid rgba(255, 255, 255, 0.48)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '18px',
               color: isActive ? 'var(--ink)' : '#FFFFFF',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.22)',
               flexShrink: 0,
+              transition: 'all 0.2s ease',
             }}
           >
             {icon}
           </div>
         </div>
 
-        {/* Bottom Info Section: Title, Subtitle, and Glass Pill Action */}
+        {/* Bottom Section: Frosted Glassy Pill Badges (matching Dalmatian, 3 years old, Male in reference) */}
         <div
           style={{
             position: 'relative',
             zIndex: 2,
             marginTop: 'auto',
-            paddingTop: '24px',
             display: 'flex',
-            flexDirection: 'column',
+            flexWrap: 'wrap',
             gap: '6px',
+            alignItems: 'center',
+            width: '100%',
           }}
         >
-          <div
-            style={{
-              fontSize: '21px',
-              fontWeight: 700,
-              lineHeight: 1.15,
-              letterSpacing: '-0.02em',
-              color: '#FFFFFF',
-              textShadow: '0 2px 8px rgba(0, 0, 0, 0.6)',
-            }}
-          >
-            {title}
-          </div>
-
-          <div
-            style={{
-              fontSize: '12.5px',
-              fontWeight: 500,
-              lineHeight: 1.35,
-              color: 'rgba(255, 255, 255, 0.85)',
-              textShadow: '0 1px 4px rgba(0, 0, 0, 0.6)',
-            }}
-          >
-            {subtitle}
-          </div>
-
-          {/* Action Glass Pill (matching the price/action glass button from the mockup) */}
-          <div
-            style={{
-              marginTop: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              gap: '6px',
-              padding: '5px 12px',
-              borderRadius: '999px',
-              background: isActive
-                ? 'rgba(237, 241, 123, 0.95)'
-                : 'rgba(255, 255, 255, 0.24)',
-              backdropFilter: 'blur(18px)',
-              WebkitBackdropFilter: 'blur(18px)',
-              border: isActive
-                ? '1px solid var(--yellow)'
-                : '1px solid rgba(255, 255, 255, 0.38)',
-              color: isActive ? 'var(--ink)' : '#FFFFFF',
-              fontSize: '12px',
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-            }}
-          >
-            <span>{badgeText || (isActive ? 'Running' : 'Tap to Start')}</span>
-            <span style={{ fontSize: '12px', opacity: 0.9 }}>›</span>
-          </div>
+          {resolvedTags.map((t, idx) => {
+            const isLast = idx === resolvedTags.length - 1
+            const isSmokyPill = isLast && !isActive
+            return (
+              <span
+                key={idx}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  background:
+                    isActive && isLast
+                      ? 'rgba(237, 241, 123, 0.95)'
+                      : isSmokyPill
+                      ? 'rgba(20, 28, 24, 0.45)'
+                      : 'rgba(255, 255, 255, 0.22)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border:
+                    isActive && isLast
+                      ? '1px solid var(--yellow)'
+                      : '1px solid rgba(255, 255, 255, 0.42)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: isActive && isLast ? 'var(--ink)' : '#FFFFFF',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.35,
+                }}
+              >
+                {t}
+              </span>
+            )
+          })}
         </div>
       </button>
     </div>

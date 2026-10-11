@@ -848,10 +848,8 @@ export const Main: React.FC<MainProps> = ({
             <ModeTile
               id="read"
               title={strings.modeRead}
-              subtitle="Labels & Signs"
               icon="📖"
-              tag="Instant OCR"
-              badgeText="Read Text"
+              tags={['Instant OCR', 'Labels', 'Tap to Read']}
               imageSrc="/cards/read.jpg"
               isActive={activeMode === 'read'}
               onClick={handleRead}
@@ -861,10 +859,8 @@ export const Main: React.FC<MainProps> = ({
             <ModeTile
               id="describe"
               title={strings.modeDescribe}
-              subtitle="Scene & Objects"
               icon="✨"
-              tag="AI Vision"
-              badgeText="Describe"
+              tags={['AI Vision', 'Scene', 'Tap to Scan']}
               imageSrc="/cards/describe.jpg"
               isActive={activeMode === 'describe'}
               onClick={handleDescribe}
@@ -874,10 +870,8 @@ export const Main: React.FC<MainProps> = ({
             <ModeTile
               id="alert"
               title={isAlertActive ? 'Stop Alert' : strings.modeAlert}
-              subtitle={isAlertActive ? 'Active • Pinging' : 'Obstacle Safety'}
               icon={isAlertActive ? '🛑' : '🛡️'}
-              tag={isAlertActive ? 'Live Warning' : 'Real-Time'}
-              badgeText={isAlertActive ? 'Stop Alert' : 'Start Alert'}
+              tags={['Safety Radar', 'Real-Time', isAlertActive ? 'Active' : 'Tap to Start']}
               imageSrc="/cards/alert.jpg"
               isActive={isAlertActive}
               onClick={handleToggleAlert}
@@ -887,34 +881,36 @@ export const Main: React.FC<MainProps> = ({
             <ModeTile
               id="money"
               title={strings.modeMoney}
-              subtitle={activeMode === 'money' ? 'Scanning • Up to 8 frames' : 'Rupee Notes'}
               icon="💵"
-              tag="Currency"
-              badgeText={activeMode === 'money' ? 'Scanning...' : 'Scan Cash'}
+              tags={['Rupee Notes', 'Currency ID', activeMode === 'money' ? 'Scanning' : 'Scan Cash']}
               imageSrc="/cards/money.jpg"
               isActive={activeMode === 'money'}
               onClick={handleMoney}
             />
           </div>
 
-          {/* Floating frosted glass bottom navigation bar (matching 'Get Started' glass effect) */}
+          {/* Floating frosted glass bottom navigation bar (matching 'Get Started' glass design) */}
           <nav
             aria-label="Quick navigation dock"
             style={{
               position: 'sticky',
-              bottom: '4px',
+              bottom: '6px',
               zIndex: 20,
               marginTop: '-64px',
+              maxWidth: '480px',
+              margin: '-64px auto 6px auto',
+              width: 'calc(100% - 12px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'rgba(38, 44, 38, 0.72)',
+              gap: '6px',
+              background: 'rgba(38, 44, 38, 0.65)',
               backdropFilter: 'blur(30px) saturate(180%)',
               WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
+              border: '1px solid rgba(255, 255, 255, 0.16)',
               borderRadius: '999px',
               padding: '6px 8px',
-              boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.22)',
             }}
           >
             {/* Camera Tab (Active) */}
@@ -923,14 +919,14 @@ export const Main: React.FC<MainProps> = ({
               aria-label="Camera active"
               style={{
                 flex: 1,
-                height: '46px',
-                border: 'none',
+                height: '48px',
+                border: '1px solid rgba(237, 241, 123, 0.55)',
                 borderRadius: '999px',
                 background: 'rgba(237, 241, 123, 0.22)',
-                borderWidth: '1px',
-                borderStyle: 'solid',
-                borderColor: 'rgba(237, 241, 123, 0.5)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
                 color: 'var(--yellow)',
+                boxShadow: '0 4px 14px rgba(237, 241, 123, 0.2)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -938,7 +934,9 @@ export const Main: React.FC<MainProps> = ({
                 gap: '2px',
                 cursor: 'pointer',
                 userSelect: 'none',
-                transition: 'all 0.18s ease',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
               <span style={{ fontSize: '16px', lineHeight: 1 }}>📷</span>
@@ -951,11 +949,13 @@ export const Main: React.FC<MainProps> = ({
               aria-label="Open modes timeline"
               style={{
                 flex: 1,
-                height: '46px',
-                border: 'none',
+                height: '48px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '999px',
-                background: 'transparent',
-                color: 'rgba(255, 255, 255, 0.85)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                color: 'rgba(255, 255, 255, 0.88)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -963,7 +963,9 @@ export const Main: React.FC<MainProps> = ({
                 gap: '2px',
                 cursor: 'pointer',
                 userSelect: 'none',
-                transition: 'all 0.18s ease',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
               <span style={{ fontSize: '16px', lineHeight: 1 }}>📋</span>
@@ -984,14 +986,20 @@ export const Main: React.FC<MainProps> = ({
                 aria-label={isAssistantListening ? 'Stop voice listening' : 'Talk to voice assistant'}
                 style={{
                   flex: 1,
-                  height: '46px',
-                  border: 'none',
+                  height: '48px',
+                  border: isAssistantListening
+                    ? '1px solid var(--yellow)'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '999px',
-                  background: isAssistantListening ? 'rgba(237, 241, 123, 0.3)' : 'transparent',
-                  borderColor: isAssistantListening ? 'var(--yellow)' : 'transparent',
-                  borderWidth: '1px',
-                  borderStyle: 'solid',
-                  color: isAssistantListening ? 'var(--yellow)' : 'rgba(255, 255, 255, 0.85)',
+                  background: isAssistantListening
+                    ? 'rgba(237, 241, 123, 0.3)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  color: isAssistantListening ? 'var(--yellow)' : 'rgba(255, 255, 255, 0.88)',
+                  boxShadow: isAssistantListening
+                    ? '0 0 16px rgba(237, 241, 123, 0.35)'
+                    : 'none',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -999,7 +1007,9 @@ export const Main: React.FC<MainProps> = ({
                   gap: '2px',
                   cursor: 'pointer',
                   userSelect: 'none',
-                  transition: 'all 0.18s ease',
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAssistantListening ? '🎙️' : '🎤'}</span>
@@ -1013,14 +1023,20 @@ export const Main: React.FC<MainProps> = ({
               aria-label={isAlertActive ? 'Stop obstacle alert' : 'Start obstacle alert'}
               style={{
                 flex: 1,
-                height: '46px',
-                border: 'none',
+                height: '48px',
+                border: isAlertActive
+                  ? '1px solid rgba(248, 113, 113, 0.65)'
+                  : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '999px',
-                background: isAlertActive ? 'rgba(248, 113, 113, 0.25)' : 'transparent',
-                borderColor: isAlertActive ? 'rgba(248, 113, 113, 0.6)' : 'transparent',
-                borderWidth: isAlertActive ? '1px' : '0',
-                borderStyle: 'solid',
-                color: isAlertActive ? '#FCA5A5' : 'rgba(255, 255, 255, 0.85)',
+                background: isAlertActive
+                  ? 'rgba(248, 113, 113, 0.28)'
+                  : 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                color: isAlertActive ? '#FCA5A5' : 'rgba(255, 255, 255, 0.88)',
+                boxShadow: isAlertActive
+                  ? '0 0 16px rgba(248, 113, 113, 0.3)'
+                  : 'none',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -1028,7 +1044,9 @@ export const Main: React.FC<MainProps> = ({
                 gap: '2px',
                 cursor: 'pointer',
                 userSelect: 'none',
-                transition: 'all 0.18s ease',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
               <span style={{ fontSize: '16px', lineHeight: 1 }}>{isAlertActive ? '🛑' : '🛡️'}</span>
@@ -1047,11 +1065,13 @@ export const Main: React.FC<MainProps> = ({
               aria-label="Spoken help"
               style={{
                 flex: 1,
-                height: '46px',
-                border: 'none',
+                height: '48px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '999px',
-                background: 'transparent',
-                color: 'rgba(255, 255, 255, 0.85)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                color: 'rgba(255, 255, 255, 0.88)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -1059,7 +1079,9 @@ export const Main: React.FC<MainProps> = ({
                 gap: '2px',
                 cursor: 'pointer',
                 userSelect: 'none',
-                transition: 'all 0.18s ease',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
               <span style={{ fontSize: '16px', lineHeight: 1 }}>❓</span>
